@@ -640,6 +640,77 @@ export default function Landing() {
         </div>
       </div>
 
+      {/* Por que usar o Quotify? */}
+      <div className="relative py-16 sm:py-24">
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-primary/[0.03] to-background" />
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-3">
+              Por que usar o Quotify?
+            </h2>
+            <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto">
+              Transforme seu balcão em uma máquina de fechar vendas.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {/* Card 1 */}
+            <div className="group relative rounded-2xl border border-border/50 bg-card/40 backdrop-blur-md p-6 sm:p-7 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/15 transition-colors">
+                <Zap className="w-6 h-6 text-primary" />
+              </div>
+              <h3 className="text-base font-bold text-foreground mb-2">Orçamento em até 10 segundos</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">Gere simulações completas sem abrir calculadora.</p>
+            </div>
+
+            {/* Card 2 */}
+            <div className="group relative rounded-2xl border border-border/50 bg-card/40 backdrop-blur-md p-6 sm:p-7 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/15 transition-colors">
+                <Calculator className="w-6 h-6 text-primary" />
+              </div>
+              <h3 className="text-base font-bold text-foreground mb-2">Cálculo automático de taxas</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">Parcelamento com as taxas reais aplicadas, sem erro.</p>
+            </div>
+
+            {/* Card 3 */}
+            <div className="group relative rounded-2xl border border-border/50 bg-card/40 backdrop-blur-md p-6 sm:p-7 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/15 transition-colors">
+                <ArrowLeftRight className="w-6 h-6 text-primary" />
+              </div>
+              <h3 className="text-base font-bold text-foreground mb-2">Upgrade com avaliação inteligente</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">Abatimento automático por bateria e condição do aparelho.</p>
+            </div>
+
+            {/* Card 4 */}
+            <div className="group relative rounded-2xl border border-border/50 bg-card/40 backdrop-blur-md p-6 sm:p-7 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/15 transition-colors">
+                <UserPlus className="w-6 h-6 text-primary" />
+              </div>
+              <h3 className="text-base font-bold text-foreground mb-2">Padronização para equipe</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">Seus vendedores seguem o mesmo padrão de orçamento.</p>
+            </div>
+
+            {/* Card 5 */}
+            <div className="group relative rounded-2xl border border-border/50 bg-card/40 backdrop-blur-md p-6 sm:p-7 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/15 transition-colors">
+                <Shield className="w-6 h-6 text-primary" />
+              </div>
+              <h3 className="text-base font-bold text-foreground mb-2">Proteção de margem</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">Evite erro manual que reduz seu lucro.</p>
+            </div>
+
+            {/* Card 6 */}
+            <div className="group relative rounded-2xl border border-border/50 bg-card/40 backdrop-blur-md p-6 sm:p-7 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/15 transition-colors">
+                <MessageCircle className="w-6 h-6 text-primary" />
+              </div>
+              <h3 className="text-base font-bold text-foreground mb-2">Texto pronto para WhatsApp</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">Orçamento organizado, profissional e fácil de entender.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* How it works section */}
       <div className="bg-card border-y border-border">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-16 sm:py-20">

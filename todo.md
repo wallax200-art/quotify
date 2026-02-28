@@ -31,3 +31,4 @@
 - [x] Adicionar modo claro e modo escuro (toggle de tema)
 - [x] Corrigir botão de edição de preço no card do produto selecionado (não abre o editor)
 - [x] Melhorar descrição dos benefícios na landing page (destacar cálculo de troca, orçamento prático, remover "feito pra balcão")
+- [x] Adicionar seção "Por que usar o Quotify?" com 6 cards de benefícios estratégicos (glass design, mobile-first)
