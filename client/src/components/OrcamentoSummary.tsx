@@ -112,8 +112,9 @@ export default function OrcamentoSummary({
                 <div>
                   <p className="text-sm font-semibold text-foreground">{selectedProduct.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {selectedProduct.storage}
+                    {selectedProduct.storage !== "-" && selectedProduct.storage}
                     {selectedProduct.color && ` • ${selectedProduct.color}`}
+                    {selectedProduct.specs && ` • ${selectedProduct.specs}`}
                     {" • "}
                     {selectedProduct.condition === "novo" ? "Lacrado" : "Seminovo"}
                   </p>

@@ -295,6 +295,7 @@ export default function Settings() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [conditionFilter, setConditionFilter] = useState<"all" | "novo" | "seminovo">("all");
+  const [productCategoryFilter, setProductCategoryFilter] = useState<string>("iPhones");
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
 
   const toggleCategory = (cat: string) => {
@@ -306,16 +307,24 @@ export default function Settings() {
     });
   };
 
+  // Categorias de produto disponíveis
+  const availableProductCategories = useMemo(() => {
+    const cats = Array.from(new Set(config.products.map(p => p.productCategory)));
+    const order = ["iPhones", "iPads", "Apple Watch", "MacBooks", "Acessórios"];
+    return cats.sort((a, b) => (order.indexOf(a) === -1 ? 99 : order.indexOf(a)) - (order.indexOf(b) === -1 ? 99 : order.indexOf(b)));
+  }, [config.products]);
+
   // ==================== PRODUTOS À VENDA ====================
   const filteredProducts = useMemo(() => {
     let items = config.products;
+    items = items.filter(p => p.productCategory === productCategoryFilter);
     if (conditionFilter !== "all") items = items.filter(p => p.condition === conditionFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
-      items = items.filter(p => p.name.toLowerCase().includes(q) || p.storage.toLowerCase().includes(q) || (p.color && p.color.toLowerCase().includes(q)));
+      items = items.filter(p => p.name.toLowerCase().includes(q) || p.storage.toLowerCase().includes(q) || (p.color && p.color.toLowerCase().includes(q)) || (p.specs && p.specs.toLowerCase().includes(q)));
     }
     return items;
-  }, [config.products, search, conditionFilter]);
+  }, [config.products, search, conditionFilter, productCategoryFilter]);
 
   const productsByCategory = useMemo(() => {
     const map = new Map<string, Product[]>();
@@ -453,6 +462,25 @@ export default function Settings() {
               {/* ==================== PRODUTOS À VENDA ==================== */}
               {activeTab === "produtos" && (
                 <div className="space-y-3">
+                  {/* Filtro por categoria de produto */}
+                  <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+                    {availableProductCategories.map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => { setProductCategoryFilter(cat); setConditionFilter("all"); setCollapsedCategories(new Set()); }}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all shrink-0 ${
+                          productCategoryFilter === cat
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "bg-secondary text-secondary-foreground hover:bg-accent"
+                        }`}
+                      >
+                        {cat}
+                        <span className={`text-[9px] px-1 py-0.5 rounded ${productCategoryFilter === cat ? "bg-primary-foreground/20" : "bg-background/50"}`}>
+                          {config.products.filter(p => p.productCategory === cat).length}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                   {showForm && !editingId && (
                     <ProductForm
                       onSave={(p) => { config.addProduct(p); setShowForm(false); toast.success("Produto adicionado"); }}

@@ -10,8 +10,8 @@ export type ProductCondition = "novo" | "seminovo";
 
 export interface ProductCategory {
   id: string;
-  name: string; // ex: "iPhones"
-  icon: string; // lucide icon name
+  name: string;
+  icon: string;
 }
 
 export interface Product {
@@ -21,8 +21,9 @@ export interface Product {
   color?: string;
   price: number;
   condition: ProductCondition;
-  category: string; // nome do modelo (ex: "iPhone 16 Pro Max")
-  productCategory: string; // categoria pai (ex: "iPhones")
+  category: string;
+  productCategory: string;
+  specs?: string; // ex: "Wi-Fi", "GPS + Cellular", "M4 16GB"
 }
 
 export interface UpgradeProduct {
@@ -51,50 +52,46 @@ export interface InstallmentRate {
 // --- CATEGORIAS DE PRODUTO ---
 export const DEFAULT_PRODUCT_CATEGORIES: ProductCategory[] = [
   { id: "iphones", name: "iPhones", icon: "smartphone" },
+  { id: "ipads", name: "iPads", icon: "tablet" },
+  { id: "apple-watch", name: "Apple Watch", icon: "watch" },
+  { id: "macbooks", name: "MacBooks", icon: "laptop" },
+  { id: "acessorios", name: "Acessórios", icon: "headphones" },
 ];
 
 // --- CORES DISPONÍVEIS POR MODELO ---
 export const IPHONE_COLORS: Record<string, string[]> = {
-  // iPhone XR
   "iPhone XR": ["Preto", "Branco", "Azul", "Amarelo", "Coral", "Vermelho"],
-  // iPhone 11
   "iPhone 11": ["Preto", "Branco", "Verde", "Amarelo", "Roxo", "Vermelho"],
   "iPhone 11 Pro": ["Cinza Espacial", "Prateado", "Dourado", "Verde Meia-Noite"],
   "iPhone 11 Pro Max": ["Cinza Espacial", "Prateado", "Dourado", "Verde Meia-Noite"],
-  // iPhone 12
   "iPhone 12 mini": ["Preto", "Branco", "Azul", "Verde", "Roxo", "Vermelho"],
   "iPhone 12": ["Preto", "Branco", "Azul", "Verde", "Roxo", "Vermelho"],
   "iPhone 12 Pro": ["Grafite", "Prateado", "Dourado", "Azul Pacífico"],
   "iPhone 12 Pro Max": ["Grafite", "Prateado", "Dourado", "Azul Pacífico"],
-  // iPhone 13
   "iPhone 13 mini": ["Meia-Noite", "Estelar", "Azul", "Rosa", "Verde", "Vermelho"],
   "iPhone 13": ["Meia-Noite", "Estelar", "Azul", "Rosa", "Verde", "Vermelho"],
   "iPhone 13 Pro": ["Grafite", "Prateado", "Dourado", "Azul Sierra", "Verde Alpino"],
   "iPhone 13 Pro Max": ["Grafite", "Prateado", "Dourado", "Azul Sierra", "Verde Alpino"],
-  // iPhone 14
   "iPhone 14": ["Meia-Noite", "Estelar", "Azul", "Roxo", "Vermelho", "Amarelo"],
   "iPhone 14 Plus": ["Meia-Noite", "Estelar", "Azul", "Roxo", "Vermelho", "Amarelo"],
   "iPhone 14 Pro": ["Preto Espacial", "Prateado", "Dourado", "Roxo Profundo"],
   "iPhone 14 Pro Max": ["Preto Espacial", "Prateado", "Dourado", "Roxo Profundo"],
-  // iPhone 15
   "iPhone 15": ["Preto", "Azul", "Verde", "Amarelo", "Rosa"],
   "iPhone 15 Plus": ["Preto", "Azul", "Verde", "Amarelo", "Rosa"],
   "iPhone 15 Pro": ["Titânio Natural", "Titânio Azul", "Titânio Branco", "Titânio Preto"],
   "iPhone 15 Pro Max": ["Titânio Natural", "Titânio Azul", "Titânio Branco", "Titânio Preto"],
-  // iPhone 16
   "iPhone 16": ["Preto", "Branco", "Azul Ultramarino", "Verde-Azulado", "Rosa"],
   "iPhone 16 Plus": ["Preto", "Branco", "Azul Ultramarino", "Verde-Azulado", "Rosa"],
   "iPhone 16 Pro": ["Titânio Natural", "Titânio Preto", "Titânio Branco", "Titânio Deserto"],
   "iPhone 16 Pro Max": ["Titânio Natural", "Titânio Preto", "Titânio Branco", "Titânio Deserto"],
-  // iPhone 17
   "iPhone 17": ["Preto", "Branco", "Verde", "Rosa"],
   "iPhone 17 Air": ["Preto", "Estelar", "Verde"],
   "iPhone 17 Pro": ["Titânio Natural", "Titânio Preto", "Titânio Branco", "Titânio Verde"],
   "iPhone 17 Pro Max": ["Titânio Natural", "Titânio Preto", "Titânio Branco", "Titânio Verde"],
 };
 
-// --- ARMAZENAMENTOS POR MODELO ---
-const STORAGE_MAP: Record<string, string[]> = {
+// --- ARMAZENAMENTOS POR MODELO (iPhones) ---
+const IPHONE_STORAGE_MAP: Record<string, string[]> = {
   "iPhone XR": ["64GB", "128GB", "256GB"],
   "iPhone 11": ["64GB", "128GB", "256GB"],
   "iPhone 11 Pro": ["64GB", "256GB", "512GB"],
@@ -125,7 +122,6 @@ const STORAGE_MAP: Record<string, string[]> = {
   "iPhone 17 Pro Max": ["256GB", "512GB", "1TB"],
 };
 
-// Modelos seminovos: XR até 17 Pro Max (todos)
 const SEMINOVO_MODELS = [
   "iPhone XR",
   "iPhone 11", "iPhone 11 Pro", "iPhone 11 Pro Max",
@@ -137,34 +133,293 @@ const SEMINOVO_MODELS = [
   "iPhone 17", "iPhone 17 Air", "iPhone 17 Pro", "iPhone 17 Pro Max",
 ];
 
-// Modelos lacrados (novos): apenas os que existem lacrado
-const LACRADO_MODELS = [
-  "iPhone 13",       // base
-  "iPhone 16",       // base/entrada
-  "iPhone 17",       // toda a linha 17
+const LACRADO_IPHONE_MODELS = [
+  "iPhone 13",
+  "iPhone 16",
+  "iPhone 17",
   "iPhone 17 Air",
   "iPhone 17 Pro",
   "iPhone 17 Pro Max",
 ];
 
-function generateId(condition: string, model: string, storage: string): string {
-  const slug = model.toLowerCase().replace(/\s+/g, "-").replace("iphone-", "");
-  const storSlug = storage.toLowerCase().replace("gb", "").replace("tb", "tb");
-  return `${condition}-${slug}-${storSlug}`;
+// ============================================================
+// iPAD — DADOS
+// ============================================================
+
+const IPAD_MODELS: {
+  name: string;
+  category: string;
+  storages: string[];
+  colors: string[];
+  variants: string[];
+}[] = [
+  // iPad Pro 13" (M5)
+  {
+    name: "iPad Pro 13\"",
+    category: "iPad Pro 13\" (M5)",
+    storages: ["256GB", "512GB", "1TB", "2TB"],
+    colors: ["Preto Espacial", "Prateado"],
+    variants: ["Wi-Fi", "Wi-Fi + Cellular"],
+  },
+  // iPad Pro 11" (M5)
+  {
+    name: "iPad Pro 11\"",
+    category: "iPad Pro 11\" (M5)",
+    storages: ["256GB", "512GB", "1TB", "2TB"],
+    colors: ["Preto Espacial", "Prateado"],
+    variants: ["Wi-Fi", "Wi-Fi + Cellular"],
+  },
+  // iPad Air 13" (M3)
+  {
+    name: "iPad Air 13\"",
+    category: "iPad Air 13\" (M3)",
+    storages: ["128GB", "256GB", "512GB", "1TB"],
+    colors: ["Cinza Espacial", "Azul", "Roxo", "Estelar"],
+    variants: ["Wi-Fi", "Wi-Fi + Cellular"],
+  },
+  // iPad Air 11" (M3)
+  {
+    name: "iPad Air 11\"",
+    category: "iPad Air 11\" (M3)",
+    storages: ["128GB", "256GB", "512GB", "1TB"],
+    colors: ["Cinza Espacial", "Azul", "Roxo", "Estelar"],
+    variants: ["Wi-Fi", "Wi-Fi + Cellular"],
+  },
+  // iPad 11ª geração (A16)
+  {
+    name: "iPad 10.9\"",
+    category: "iPad 11ª geração (A16)",
+    storages: ["128GB", "256GB", "512GB"],
+    colors: ["Azul", "Rosa", "Amarelo", "Prateado"],
+    variants: ["Wi-Fi", "Wi-Fi + Cellular"],
+  },
+  // iPad mini 7ª geração (A17 Pro)
+  {
+    name: "iPad mini",
+    category: "iPad mini 7ª geração",
+    storages: ["128GB", "256GB", "512GB"],
+    colors: ["Cinza Espacial", "Azul", "Roxo", "Estelar"],
+    variants: ["Wi-Fi", "Wi-Fi + Cellular"],
+  },
+];
+
+// ============================================================
+// APPLE WATCH — DADOS
+// ============================================================
+
+const APPLE_WATCH_MODELS: {
+  name: string;
+  category: string;
+  sizes: string[];
+  materials: { name: string; colors: string[] }[];
+  variants: string[];
+}[] = [
+  // Apple Watch Series 11
+  {
+    name: "Apple Watch Series 11",
+    category: "Apple Watch Series 11",
+    sizes: ["42mm", "46mm"],
+    materials: [
+      { name: "Alumínio", colors: ["Cinza Espacial", "Prateado", "Rosa Dourado", "Preto Jet"] },
+      { name: "Titânio", colors: ["Natural", "Dourado", "Ardósia"] },
+    ],
+    variants: ["GPS", "GPS + Cellular"],
+  },
+  // Apple Watch SE 3
+  {
+    name: "Apple Watch SE 3",
+    category: "Apple Watch SE 3",
+    sizes: ["40mm", "44mm"],
+    materials: [
+      { name: "Alumínio", colors: ["Meia-Noite", "Estelar"] },
+    ],
+    variants: ["GPS", "GPS + Cellular"],
+  },
+  // Apple Watch Ultra 3
+  {
+    name: "Apple Watch Ultra 3",
+    category: "Apple Watch Ultra 3",
+    sizes: ["49mm"],
+    materials: [
+      { name: "Titânio", colors: ["Titânio Natural"] },
+    ],
+    variants: ["GPS + Cellular"],
+  },
+];
+
+// ============================================================
+// MACBOOK — DADOS
+// ============================================================
+
+const MACBOOK_MODELS: {
+  name: string;
+  category: string;
+  configs: { chip: string; ram: string; storage: string }[];
+  colors: string[];
+}[] = [
+  // MacBook Air 13" (M4)
+  {
+    name: "MacBook Air 13\"",
+    category: "MacBook Air 13\" (M4)",
+    configs: [
+      { chip: "M4", ram: "16GB", storage: "256GB" },
+      { chip: "M4", ram: "16GB", storage: "512GB" },
+      { chip: "M4", ram: "16GB", storage: "1TB" },
+      { chip: "M4", ram: "24GB", storage: "512GB" },
+      { chip: "M4", ram: "24GB", storage: "1TB" },
+      { chip: "M4", ram: "24GB", storage: "2TB" },
+      { chip: "M4", ram: "32GB", storage: "1TB" },
+      { chip: "M4", ram: "32GB", storage: "2TB" },
+    ],
+    colors: ["Meia-Noite", "Estelar", "Cinza Espacial", "Prateado", "Azul Celeste"],
+  },
+  // MacBook Air 15" (M4)
+  {
+    name: "MacBook Air 15\"",
+    category: "MacBook Air 15\" (M4)",
+    configs: [
+      { chip: "M4", ram: "16GB", storage: "256GB" },
+      { chip: "M4", ram: "16GB", storage: "512GB" },
+      { chip: "M4", ram: "16GB", storage: "1TB" },
+      { chip: "M4", ram: "24GB", storage: "512GB" },
+      { chip: "M4", ram: "24GB", storage: "1TB" },
+      { chip: "M4", ram: "24GB", storage: "2TB" },
+      { chip: "M4", ram: "32GB", storage: "1TB" },
+      { chip: "M4", ram: "32GB", storage: "2TB" },
+    ],
+    colors: ["Meia-Noite", "Estelar", "Cinza Espacial", "Prateado", "Azul Celeste"],
+  },
+  // MacBook Pro 14" (M5)
+  {
+    name: "MacBook Pro 14\"",
+    category: "MacBook Pro 14\" (M5)",
+    configs: [
+      { chip: "M5", ram: "16GB", storage: "256GB" },
+      { chip: "M5", ram: "16GB", storage: "512GB" },
+      { chip: "M5", ram: "16GB", storage: "1TB" },
+      { chip: "M5", ram: "24GB", storage: "512GB" },
+      { chip: "M5", ram: "24GB", storage: "1TB" },
+      { chip: "M5 Pro", ram: "24GB", storage: "512GB" },
+      { chip: "M5 Pro", ram: "24GB", storage: "1TB" },
+      { chip: "M5 Pro", ram: "24GB", storage: "2TB" },
+      { chip: "M5 Pro", ram: "36GB", storage: "512GB" },
+      { chip: "M5 Pro", ram: "36GB", storage: "1TB" },
+      { chip: "M5 Pro", ram: "36GB", storage: "2TB" },
+      { chip: "M5 Max", ram: "36GB", storage: "1TB" },
+      { chip: "M5 Max", ram: "48GB", storage: "1TB" },
+      { chip: "M5 Max", ram: "48GB", storage: "2TB" },
+      { chip: "M5 Max", ram: "64GB", storage: "2TB" },
+      { chip: "M5 Max", ram: "64GB", storage: "4TB" },
+      { chip: "M5 Max", ram: "128GB", storage: "4TB" },
+    ],
+    colors: ["Preto Espacial", "Prateado"],
+  },
+  // MacBook Pro 16" (M5 Pro/Max)
+  {
+    name: "MacBook Pro 16\"",
+    category: "MacBook Pro 16\" (M5 Pro/Max)",
+    configs: [
+      { chip: "M5 Pro", ram: "24GB", storage: "512GB" },
+      { chip: "M5 Pro", ram: "24GB", storage: "1TB" },
+      { chip: "M5 Pro", ram: "24GB", storage: "2TB" },
+      { chip: "M5 Pro", ram: "36GB", storage: "512GB" },
+      { chip: "M5 Pro", ram: "36GB", storage: "1TB" },
+      { chip: "M5 Pro", ram: "36GB", storage: "2TB" },
+      { chip: "M5 Max", ram: "36GB", storage: "1TB" },
+      { chip: "M5 Max", ram: "48GB", storage: "1TB" },
+      { chip: "M5 Max", ram: "48GB", storage: "2TB" },
+      { chip: "M5 Max", ram: "64GB", storage: "2TB" },
+      { chip: "M5 Max", ram: "64GB", storage: "4TB" },
+      { chip: "M5 Max", ram: "128GB", storage: "4TB" },
+      { chip: "M5 Max", ram: "128GB", storage: "8TB" },
+    ],
+    colors: ["Preto Espacial", "Prateado"],
+  },
+];
+
+// ============================================================
+// ACESSÓRIOS APPLE — DADOS
+// ============================================================
+
+const ACESSORIOS_APPLE: { name: string; category: string; storage: string; specs?: string }[] = [
+  // AirPods
+  { name: "AirPods 4", category: "AirPods", storage: "-", specs: "Sem ANC" },
+  { name: "AirPods 4 com ANC", category: "AirPods", storage: "-", specs: "Com Cancelamento de Ruído" },
+  { name: "AirPods Pro 3", category: "AirPods", storage: "-", specs: "Com ANC e USB-C" },
+  { name: "AirPods Max (USB-C) Meia-Noite", category: "AirPods Max", storage: "-", specs: "Meia-Noite" },
+  { name: "AirPods Max (USB-C) Estelar", category: "AirPods Max", storage: "-", specs: "Estelar" },
+  { name: "AirPods Max (USB-C) Azul", category: "AirPods Max", storage: "-", specs: "Azul" },
+  { name: "AirPods Max (USB-C) Laranja", category: "AirPods Max", storage: "-", specs: "Laranja" },
+  { name: "AirPods Max (USB-C) Roxo", category: "AirPods Max", storage: "-", specs: "Roxo" },
+  // Apple Pencil
+  { name: "Apple Pencil Pro", category: "Apple Pencil", storage: "-" },
+  { name: "Apple Pencil (USB-C)", category: "Apple Pencil", storage: "-" },
+  // Carregadores e Cabos
+  { name: "Carregador MagSafe", category: "Carregadores", storage: "-" },
+  { name: "Carregador MagSafe Duo", category: "Carregadores", storage: "-" },
+  { name: "Carregador Apple Watch USB-C", category: "Carregadores", storage: "-" },
+  { name: "Adaptador de Energia USB-C 20W", category: "Carregadores", storage: "-" },
+  { name: "Adaptador de Energia USB-C 30W", category: "Carregadores", storage: "-" },
+  { name: "Adaptador de Energia USB-C 35W Duplo", category: "Carregadores", storage: "-" },
+  { name: "Adaptador de Energia USB-C 67W", category: "Carregadores", storage: "-" },
+  { name: "Adaptador de Energia USB-C 96W", category: "Carregadores", storage: "-" },
+  { name: "Adaptador de Energia USB-C 140W", category: "Carregadores", storage: "-" },
+  { name: "Cabo USB-C para USB-C (1m)", category: "Cabos", storage: "-" },
+  { name: "Cabo USB-C para USB-C (2m)", category: "Cabos", storage: "-" },
+  { name: "Cabo USB-C para Lightning (1m)", category: "Cabos", storage: "-" },
+  { name: "Cabo Thunderbolt 4 USB-C (1m)", category: "Cabos", storage: "-" },
+  // AirTag
+  { name: "AirTag (Unidade)", category: "AirTag", storage: "-" },
+  { name: "AirTag (Pack 4 unidades)", category: "AirTag", storage: "-" },
+  // Apple TV
+  { name: "Apple TV 4K Wi-Fi", category: "Apple TV", storage: "64GB" },
+  { name: "Apple TV 4K Wi-Fi + Ethernet", category: "Apple TV", storage: "128GB" },
+  // HomePod
+  { name: "HomePod (2ª geração) Meia-Noite", category: "HomePod", storage: "-", specs: "Meia-Noite" },
+  { name: "HomePod (2ª geração) Branco", category: "HomePod", storage: "-", specs: "Branco" },
+  { name: "HomePod mini Meia-Noite", category: "HomePod", storage: "-", specs: "Meia-Noite" },
+  { name: "HomePod mini Azul", category: "HomePod", storage: "-", specs: "Azul" },
+  { name: "HomePod mini Laranja", category: "HomePod", storage: "-", specs: "Laranja" },
+  // Teclados iPad
+  { name: "Magic Keyboard para iPad Pro 11\"", category: "Teclados iPad", storage: "-" },
+  { name: "Magic Keyboard para iPad Pro 13\"", category: "Teclados iPad", storage: "-" },
+  { name: "Magic Keyboard para iPad Air 11\"", category: "Teclados iPad", storage: "-" },
+  { name: "Magic Keyboard para iPad Air 13\"", category: "Teclados iPad", storage: "-" },
+  { name: "Magic Keyboard Folio para iPad", category: "Teclados iPad", storage: "-" },
+  // Capas
+  { name: "Capa de Silicone MagSafe iPhone 16", category: "Capas iPhone", storage: "-" },
+  { name: "Capa de Silicone MagSafe iPhone 16 Pro", category: "Capas iPhone", storage: "-" },
+  { name: "Capa de Silicone MagSafe iPhone 16 Pro Max", category: "Capas iPhone", storage: "-" },
+  { name: "Capa Transparente MagSafe iPhone 16", category: "Capas iPhone", storage: "-" },
+  { name: "Capa Transparente MagSafe iPhone 16 Pro", category: "Capas iPhone", storage: "-" },
+  { name: "Capa Transparente MagSafe iPhone 16 Pro Max", category: "Capas iPhone", storage: "-" },
+];
+
+// ============================================================
+// GERAÇÃO AUTOMÁTICA DE PRODUTOS
+// ============================================================
+
+function generateId(...parts: string[]): string {
+  return parts
+    .join("-")
+    .toLowerCase()
+    .replace(/["\s]+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-");
 }
 
-function generateSaleProducts(): Product[] {
+function generateAllProducts(): Product[] {
   const products: Product[] = [];
 
-  // Seminovos — todos os modelos
+  // ---- iPhones Seminovos ----
   for (const model of SEMINOVO_MODELS) {
-    const storages = STORAGE_MAP[model] || [];
+    const storages = IPHONE_STORAGE_MAP[model] || [];
     for (const storage of storages) {
       products.push({
         id: generateId("semi", model, storage),
         name: model,
         storage,
-        price: 0, // preço a definir pelo dono
+        price: 0,
         condition: "seminovo",
         category: model,
         productCategory: "iPhones",
@@ -172,15 +427,15 @@ function generateSaleProducts(): Product[] {
     }
   }
 
-  // Lacrados — apenas modelos disponíveis
-  for (const model of LACRADO_MODELS) {
-    const storages = STORAGE_MAP[model] || [];
+  // ---- iPhones Lacrados ----
+  for (const model of LACRADO_IPHONE_MODELS) {
+    const storages = IPHONE_STORAGE_MAP[model] || [];
     for (const storage of storages) {
       products.push({
         id: generateId("novo", model, storage),
         name: model,
         storage,
-        price: 0, // preço a definir pelo dono
+        price: 0,
         condition: "novo",
         category: model,
         productCategory: "iPhones",
@@ -188,11 +443,81 @@ function generateSaleProducts(): Product[] {
     }
   }
 
+  // ---- iPads (todos lacrados) ----
+  for (const ipad of IPAD_MODELS) {
+    for (const storage of ipad.storages) {
+      for (const variant of ipad.variants) {
+        products.push({
+          id: generateId("novo", ipad.name, storage, variant),
+          name: ipad.name,
+          storage,
+          price: 0,
+          condition: "novo",
+          category: ipad.category,
+          productCategory: "iPads",
+          specs: variant,
+        });
+      }
+    }
+  }
+
+  // ---- Apple Watch (todos lacrados) ----
+  for (const watch of APPLE_WATCH_MODELS) {
+    for (const size of watch.sizes) {
+      for (const material of watch.materials) {
+        for (const color of material.colors) {
+          for (const variant of watch.variants) {
+            products.push({
+              id: generateId("novo", watch.name, size, material.name, color, variant),
+              name: `${watch.name} ${size}`,
+              storage: material.name,
+              price: 0,
+              condition: "novo",
+              category: watch.category,
+              productCategory: "Apple Watch",
+              specs: `${color} • ${variant}`,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // ---- MacBooks (todos lacrados) ----
+  for (const mac of MACBOOK_MODELS) {
+    for (const config of mac.configs) {
+      products.push({
+        id: generateId("novo", mac.name, config.chip, config.ram, config.storage),
+        name: mac.name,
+        storage: config.storage,
+        price: 0,
+        condition: "novo",
+        category: mac.category,
+        productCategory: "MacBooks",
+        specs: `${config.chip} • ${config.ram} RAM`,
+      });
+    }
+  }
+
+  // ---- Acessórios (todos lacrados) ----
+  for (const acc of ACESSORIOS_APPLE) {
+    products.push({
+      id: generateId("novo", "acc", acc.name),
+      name: acc.name,
+      storage: acc.storage,
+      price: 0,
+      condition: "novo",
+      category: acc.category,
+      productCategory: "Acessórios",
+      specs: acc.specs,
+    });
+  }
+
   return products;
 }
 
 // --- PRODUTOS À VENDA (gerados automaticamente) ---
-export const DEFAULT_PRODUCTS: Product[] = generateSaleProducts();
+export const DEFAULT_PRODUCTS: Product[] = generateAllProducts();
 
 // --- PRODUTOS DE UPGRADE (aparelhos usados do cliente para abater) ---
 export const DEFAULT_UPGRADE_PRODUCTS: UpgradeProduct[] = [
@@ -375,8 +700,9 @@ export function gerarOrcamentoTexto(
   lines.push("📱 Orçamento – Tio Sam Imports");
   lines.push("");
   lines.push(`📲 ${product.name}`);
-  const details: string[] = [product.storage];
+  const details: string[] = product.storage !== "-" ? [product.storage] : [];
   if (product.color) details.push(product.color);
+  if (product.specs) details.push(product.specs);
   if (product.condition === "seminovo") details.push("Seminovo");
   else details.push("Lacrado");
   lines.push(details.join(" • "));

@@ -1,10 +1,30 @@
 /**
  * ProductSelector — Seletor de produto para compra
- * Suporta filtro por condição (novo/seminovo) e categorias dinâmicas
+ * Suporta filtro por productCategory (iPhones, iPads, etc.), condição (novo/seminovo) e busca
  */
 import { useState, useMemo } from "react";
 import { Product, getProductCategories, formatCurrency } from "@/lib/data";
-import { Search, Smartphone, Check, X, Package } from "lucide-react";
+import {
+  Search,
+  Smartphone,
+  Tablet,
+  Watch,
+  Laptop,
+  Headphones,
+  Check,
+  X,
+  Package,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+
+const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  iPhones: Smartphone,
+  iPads: Tablet,
+  "Apple Watch": Watch,
+  MacBooks: Laptop,
+  "Acessórios": Headphones,
+};
 
 interface ProductSelectorProps {
   products: Product[];
@@ -15,10 +35,23 @@ interface ProductSelectorProps {
 export default function ProductSelector({ products, selectedProduct, onSelect }: ProductSelectorProps) {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [activeProductCategory, setActiveProductCategory] = useState<string>("iPhones");
   const [conditionFilter, setConditionFilter] = useState<"all" | "novo" | "seminovo">("all");
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+
+  // Categorias de produto disponíveis
+  const productCategories = useMemo(() => {
+    const cats = Array.from(new Set((products || []).map((p) => p.productCategory)));
+    return cats.sort((a, b) => {
+      const order = ["iPhones", "iPads", "Apple Watch", "MacBooks", "Acessórios"];
+      return (order.indexOf(a) === -1 ? 99 : order.indexOf(a)) - (order.indexOf(b) === -1 ? 99 : order.indexOf(b));
+    });
+  }, [products]);
 
   const filtered = useMemo(() => {
     let list = products || [];
+    // Filtrar por productCategory
+    list = list.filter((p) => p.productCategory === activeProductCategory);
     if (conditionFilter !== "all") {
       list = list.filter((p) => p.condition === conditionFilter);
     }
@@ -31,20 +64,29 @@ export default function ProductSelector({ products, selectedProduct, onSelect }:
         (p) =>
           p.name.toLowerCase().includes(q) ||
           p.storage.toLowerCase().includes(q) ||
-          (p.color && p.color.toLowerCase().includes(q))
+          (p.color && p.color.toLowerCase().includes(q)) ||
+          (p.specs && p.specs.toLowerCase().includes(q))
       );
     }
-    // Filtrar produtos com preço definido primeiro, depois os sem preço
+    // Produtos com preço primeiro
     return list.sort((a, b) => {
       if (a.price > 0 && b.price === 0) return -1;
       if (a.price === 0 && b.price > 0) return 1;
       return 0;
     });
-  }, [products, search, activeCategory, conditionFilter]);
+  }, [products, search, activeCategory, activeProductCategory, conditionFilter]);
 
   const categories = useMemo(() => getProductCategories(filtered), [filtered]);
 
-  // Agrupar por categoria
+  // Verificar se a productCategory atual tem seminovos
+  const hasConditions = useMemo(() => {
+    const list = (products || []).filter((p) => p.productCategory === activeProductCategory);
+    const hasNovo = list.some((p) => p.condition === "novo");
+    const hasSeminovo = list.some((p) => p.condition === "seminovo");
+    return { hasNovo, hasSeminovo, hasBoth: hasNovo && hasSeminovo };
+  }, [products, activeProductCategory]);
+
+  // Agrupar por category
   const grouped = useMemo(() => {
     const map = new Map<string, Product[]>();
     for (const p of filtered) {
@@ -55,6 +97,15 @@ export default function ProductSelector({ products, selectedProduct, onSelect }:
     }
     return map;
   }, [filtered]);
+
+  const toggleCollapse = (cat: string) => {
+    setCollapsedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) next.delete(cat);
+      else next.add(cat);
+      return next;
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -86,8 +137,9 @@ export default function ProductSelector({ products, selectedProduct, onSelect }:
             <div>
               <p className="font-semibold text-sm text-foreground">{selectedProduct.name}</p>
               <p className="text-xs text-muted-foreground">
-                {selectedProduct.storage}
+                {selectedProduct.storage !== "-" && selectedProduct.storage}
                 {selectedProduct.color && ` • ${selectedProduct.color}`}
+                {selectedProduct.specs && ` • ${selectedProduct.specs}`}
                 {" • "}
                 <span className={selectedProduct.condition === "novo" ? "text-emerald-600" : "text-blue-600"}>
                   {selectedProduct.condition === "novo" ? "Lacrado" : "Seminovo"}
@@ -101,110 +153,191 @@ export default function ProductSelector({ products, selectedProduct, onSelect }:
         </div>
       )}
 
-      {/* Filtro de condição */}
-      <div className="flex gap-1 p-0.5 bg-secondary rounded-lg w-fit">
-        {(["all", "seminovo", "novo"] as const).map((f) => (
-          <button
-            key={f}
-            onClick={() => { setConditionFilter(f); setActiveCategory(null); }}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-              conditionFilter === f
-                ? "bg-card text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {f === "all" ? "Todos" : f === "novo" ? "Lacrados" : "Seminovos"}
-          </button>
-        ))}
+      {/* Filtro por categoria de produto (iPhones, iPads, etc.) */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+        {productCategories.map((cat) => {
+          const Icon = CATEGORY_ICONS[cat] || Package;
+          const isActive = activeProductCategory === cat;
+          const count = (products || []).filter((p) => p.productCategory === cat).length;
+          return (
+            <button
+              key={cat}
+              onClick={() => {
+                setActiveProductCategory(cat);
+                setActiveCategory(null);
+                setConditionFilter("all");
+                setCollapsedCategories(new Set());
+              }}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all shrink-0 ${
+                isActive
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "bg-secondary text-secondary-foreground hover:bg-accent"
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {cat}
+              <span className={`text-[9px] px-1 py-0.5 rounded ${isActive ? "bg-primary-foreground/20" : "bg-background/50"}`}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
       </div>
+
+      {/* Filtro de condição (só mostra se tem ambas) */}
+      {hasConditions.hasBoth && (
+        <div className="flex gap-1 p-0.5 bg-secondary rounded-lg w-fit">
+          {(["all", "seminovo", "novo"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => {
+                setConditionFilter(f);
+                setActiveCategory(null);
+              }}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                conditionFilter === f
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {f === "all" ? "Todos" : f === "novo" ? "Lacrados" : "Seminovos"}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Busca */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <input
           type="text"
-          placeholder="Buscar produto..."
+          placeholder={`Buscar em ${activeProductCategory}...`}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full pl-9 pr-4 py-2.5 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary transition-all"
         />
       </div>
 
-      {/* Filtros de modelo */}
-      <div className="flex flex-wrap gap-1.5">
-        <button
-          onClick={() => setActiveCategory(null)}
-          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
-            !activeCategory
-              ? "bg-primary text-primary-foreground shadow-sm"
-              : "bg-secondary text-secondary-foreground hover:bg-accent"
-          }`}
-        >
-          Todos
-        </button>
-        {categories.map((cat) => (
+      {/* Filtros de modelo (subcategoria) */}
+      {categories.length > 1 && (
+        <div className="flex flex-wrap gap-1.5">
           <button
-            key={cat}
-            onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
+            onClick={() => setActiveCategory(null)}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
-              activeCategory === cat
+              !activeCategory
                 ? "bg-primary text-primary-foreground shadow-sm"
                 : "bg-secondary text-secondary-foreground hover:bg-accent"
             }`}
           >
-            {cat.replace("iPhone ", "")}
+            Todos
           </button>
-        ))}
-      </div>
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                activeCategory === cat
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "bg-secondary text-secondary-foreground hover:bg-accent"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      )}
 
-      {/* Lista de produtos */}
-      <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1 scrollbar-thin">
+      {/* Lista de produtos agrupados */}
+      <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1 scrollbar-thin">
         {Array.from(grouped.entries()).map(([category, items]) => (
-          <div key={category}>
-            <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">
-              {category}
-            </h3>
-            <div className="grid gap-1.5">
-              {items.map((product) => {
-                const isSelected = selectedProduct?.id === product.id;
-                return (
-                  <button
-                    key={product.id}
-                    onClick={() => onSelect(isSelected ? null : product)}
-                    className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-left transition-all active:scale-[0.99] ${
-                      isSelected
-                        ? "bg-primary text-primary-foreground shadow-md"
-                        : "bg-card hover:bg-accent border border-border hover:border-primary/30 hover:shadow-sm"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
+          <div key={category} className="border border-border rounded-lg overflow-hidden">
+            <button
+              onClick={() => toggleCollapse(category)}
+              className="w-full flex items-center justify-between px-3 py-2.5 bg-secondary/50 hover:bg-secondary transition-colors"
+            >
+              <span className="text-[11px] font-bold text-foreground uppercase tracking-wider">
+                {category}{" "}
+                <span className="text-muted-foreground font-normal normal-case">({items.length})</span>
+              </span>
+              {collapsedCategories.has(category) ? (
+                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+              ) : (
+                <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />
+              )}
+            </button>
+            {!collapsedCategories.has(category) && (
+              <div className="divide-y divide-border">
+                {items.map((product) => {
+                  const isSelected = selectedProduct?.id === product.id;
+                  return (
+                    <button
+                      key={product.id}
+                      onClick={() => onSelect(isSelected ? null : product)}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 text-left transition-all active:scale-[0.99] ${
+                        isSelected
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-accent"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        {product.storage !== "-" && (
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold shrink-0 ${
+                              isSelected
+                                ? "bg-primary-foreground/20 text-primary-foreground"
+                                : "bg-secondary text-secondary-foreground"
+                            }`}
+                          >
+                            {product.storage}
+                          </span>
+                        )}
+                        <div className="min-w-0">
+                          <span className="text-xs font-medium">{product.name}</span>
+                          {product.specs && (
+                            <span className={`text-[10px] ml-1.5 ${isSelected ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                              • {product.specs}
+                            </span>
+                          )}
+                        </div>
+                        {product.condition === "novo" && (
+                          <span
+                            className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${
+                              isSelected
+                                ? "bg-primary-foreground/20 text-primary-foreground"
+                                : "bg-emerald-100 text-emerald-700"
+                            }`}
+                          >
+                            LACRADO
+                          </span>
+                        )}
+                        {product.condition === "seminovo" && (
+                          <span
+                            className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${
+                              isSelected
+                                ? "bg-primary-foreground/20 text-primary-foreground"
+                                : "bg-blue-100 text-blue-700"
+                            }`}
+                          >
+                            SEMI
+                          </span>
+                        )}
+                      </div>
                       <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
+                        className={`font-mono text-xs font-semibold shrink-0 ml-2 ${
                           isSelected
-                            ? "bg-primary-foreground/20 text-primary-foreground"
-                            : "bg-secondary text-secondary-foreground"
+                            ? "text-primary-foreground"
+                            : product.price > 0
+                            ? "text-foreground"
+                            : "text-amber-500"
                         }`}
                       >
-                        {product.storage}
+                        {product.price > 0 ? formatCurrency(product.price) : "A definir"}
                       </span>
-                      <span className="text-sm font-medium">{product.name}</span>
-                      {product.condition === "novo" && (
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
-                          isSelected ? "bg-primary-foreground/20 text-primary-foreground" : "bg-emerald-100 text-emerald-700"
-                        }`}>
-                          LACRADO
-                        </span>
-                      )}
-                    </div>
-                    <span className={`font-mono text-sm font-semibold ${
-                      isSelected ? "text-primary-foreground" : product.price > 0 ? "text-foreground" : "text-amber-500"
-                    }`}>
-                      {product.price > 0 ? formatCurrency(product.price) : "A definir"}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         ))}
         {filtered.length === 0 && (

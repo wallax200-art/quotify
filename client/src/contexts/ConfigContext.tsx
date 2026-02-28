@@ -14,14 +14,25 @@ import {
 } from "@/lib/data";
 
 // --- Storage Keys ---
+// Bump DATA_VERSION whenever DEFAULT_PRODUCTS changes structure
+const DATA_VERSION = "v4";
 const KEYS = {
-  products: "tiosam-products-v3",
-  upgradeProducts: "tiosam-upgrade-v3",
-  deductions: "tiosam-deductions-v3",
-  rates: "tiosam-rates-v3",
-  categories: "tiosam-categories-v3",
-  closingText: "tiosam-closing-v3",
+  products: `tiosam-products-${DATA_VERSION}`,
+  upgradeProducts: `tiosam-upgrade-${DATA_VERSION}`,
+  deductions: `tiosam-deductions-${DATA_VERSION}`,
+  rates: `tiosam-rates-${DATA_VERSION}`,
+  categories: `tiosam-categories-${DATA_VERSION}`,
+  closingText: `tiosam-closing-${DATA_VERSION}`,
+  dataVersion: "tiosam-data-version",
 } as const;
+
+// Clean up old version keys on load
+function cleanupOldKeys() {
+  try {
+    const oldPrefixes = ["tiosam-products-v3", "tiosam-upgrade-v3", "tiosam-deductions-v3", "tiosam-rates-v3", "tiosam-categories-v3", "tiosam-closing-v3"];
+    oldPrefixes.forEach(k => localStorage.removeItem(k));
+  } catch { /* ignore */ }
+}
 
 // --- Config State ---
 interface ConfigState {
@@ -80,13 +91,83 @@ function saveToStorage<T>(key: string, data: T): void {
   } catch { /* ignore */ }
 }
 
+/**
+ * Smart merge: preserva preços editados pelo usuário mas adiciona novos produtos padrão.
+ * Se o usuário editou o preço de um produto (preço > 0), mantém o preço dele.
+ * Produtos novos do DEFAULT que não existem no storage são adicionados.
+ */
+function mergeProducts(stored: Product[], defaults: Product[]): Product[] {
+  const storedMap = new Map(stored.map(p => [p.id, p]));
+  const merged: Product[] = [];
+  const seenIds = new Set<string>();
+
+  // Primeiro, adicionar todos os defaults (com preço do stored se existir)
+  for (const def of defaults) {
+    const existing = storedMap.get(def.id);
+    if (existing && existing.price > 0) {
+      // Manter o preço editado pelo usuário
+      merged.push({ ...def, price: existing.price });
+    } else {
+      merged.push(def);
+    }
+    seenIds.add(def.id);
+  }
+
+  // Depois, adicionar produtos customizados do stored que não existem nos defaults
+  Array.from(storedMap.values()).forEach(s => {
+    if (!seenIds.has(s.id)) {
+      merged.push(s);
+    }
+  });
+
+  return merged;
+}
+
+function mergeUpgradeProducts(stored: UpgradeProduct[], defaults: UpgradeProduct[]): UpgradeProduct[] {
+  const storedMap = new Map(stored.map(p => [p.id, p]));
+  const merged: UpgradeProduct[] = [];
+  const seenIds = new Set<string>();
+
+  for (const def of defaults) {
+    const existing = storedMap.get(def.id);
+    if (existing && existing.tradeInValue !== def.tradeInValue) {
+      merged.push({ ...def, tradeInValue: existing.tradeInValue });
+    } else {
+      merged.push(def);
+    }
+    seenIds.add(def.id);
+  }
+
+  Array.from(storedMap.values()).forEach(s => {
+    if (!seenIds.has(s.id)) {
+      merged.push(s);
+    }
+  });
+
+  return merged;
+}
+
 export function ConfigProvider({ children }: { children: ReactNode }) {
-  const [products, setProducts] = useState<Product[]>(() =>
-    loadFromStorage(KEYS.products, DEFAULT_PRODUCTS)
-  );
-  const [upgradeProducts, setUpgradeProducts] = useState<UpgradeProduct[]>(() =>
-    loadFromStorage(KEYS.upgradeProducts, DEFAULT_UPGRADE_PRODUCTS)
-  );
+  // Cleanup old version keys
+  cleanupOldKeys();
+
+  const [products, setProducts] = useState<Product[]>(() => {
+    const stored = loadFromStorage<Product[] | null>(KEYS.products, null);
+    if (stored) {
+      // Merge: manter preços editados mas adicionar novos produtos
+      return mergeProducts(stored, DEFAULT_PRODUCTS);
+    }
+    return DEFAULT_PRODUCTS;
+  });
+
+  const [upgradeProducts, setUpgradeProducts] = useState<UpgradeProduct[]>(() => {
+    const stored = loadFromStorage<UpgradeProduct[] | null>(KEYS.upgradeProducts, null);
+    if (stored) {
+      return mergeUpgradeProducts(stored, DEFAULT_UPGRADE_PRODUCTS);
+    }
+    return DEFAULT_UPGRADE_PRODUCTS;
+  });
+
   const [conditionDeductions, setConditionDeductions] = useState<ConditionDeduction[]>(() =>
     loadFromStorage(KEYS.deductions, DEFAULT_CONDITION_DEDUCTIONS)
   );
