@@ -37,15 +37,23 @@ queryClient.getMutationCache().subscribe(event => {
   }
 });
 
+export const SESSION_TOKEN_KEY = "quotify_session_token";
+
 const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
       url: "/api/trpc",
       transformer: superjson,
       fetch(input, init) {
+        const token = localStorage.getItem(SESSION_TOKEN_KEY);
+        const headers = new Headers((init as any)?.headers);
+        if (token) {
+          headers.set("Authorization", `Bearer ${token}`);
+        }
         return globalThis.fetch(input, {
           ...(init ?? {}),
           credentials: "include",
+          headers,
         });
       },
     }),

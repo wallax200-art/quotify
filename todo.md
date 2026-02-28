@@ -25,3 +25,4 @@
 - [x] Manter compatibilidade com Manus OAuth existente
 - [x] Bug: login com email e senha corrigido (email era wallax200 com dois L)
 - [x] Bug: login carrega e volta para a página inicial sem entrar no dashboard
+- [x] Bug: login com email/senha funciona na API mas não redireciona para o dashboard (fica na página inicial)

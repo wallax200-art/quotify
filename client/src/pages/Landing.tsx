@@ -94,6 +94,8 @@ export default function Landing() {
     }
   }, [loading, isAuthenticated, user, setLocation]);
 
+  const utils = trpc.useUtils();
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError("");
@@ -111,7 +113,13 @@ export default function Landing() {
         return;
       }
 
-      // Reload to trigger auth check and redirect
+      // Store the session token in localStorage as fallback for browsers that block cookies
+      if ((result as any).token) {
+        localStorage.setItem("quotify_session_token", (result as any).token);
+      }
+
+      // Invalidate auth cache and redirect
+      await utils.auth.me.invalidate();
       window.location.href = "/dashboard";
     } catch (err: any) {
       setLoginError(err?.message || "Erro ao fazer login");
