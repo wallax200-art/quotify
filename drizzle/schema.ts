@@ -2,13 +2,17 @@ import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-or
 
 /**
  * Core user table backing auth flow.
+ * Supports both Manus OAuth and email/password authentication.
  * Extended with Quotify-specific fields: status (pending/active/blocked), storeName, phone.
  */
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
-  openId: varchar("openId", { length: 64 }).notNull().unique(),
+  /** Manus OAuth identifier OR email-based unique ID (email:xxx@xxx.com) */
+  openId: varchar("openId", { length: 320 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
+  /** Hashed password for email/password auth (null for OAuth users) */
+  password: varchar("password", { length: 255 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   /** Quotify activation status: pending (awaiting admin approval), active, blocked */

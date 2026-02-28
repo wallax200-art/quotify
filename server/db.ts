@@ -2,6 +2,7 @@ import { eq, desc, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, appSettings } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import bcrypt from "bcryptjs";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -65,6 +66,26 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.status = 'active';
     }
 
+    if (user.status !== undefined) {
+      values.status = user.status;
+      updateSet.status = user.status;
+    }
+
+    if (user.password !== undefined) {
+      values.password = user.password;
+      updateSet.password = user.password;
+    }
+
+    if (user.storeName !== undefined) {
+      values.storeName = user.storeName;
+      updateSet.storeName = user.storeName;
+    }
+
+    if (user.phone !== undefined) {
+      values.phone = user.phone;
+      updateSet.phone = user.phone;
+    }
+
     if (!values.lastSignedIn) {
       values.lastSignedIn = new Date();
     }
@@ -90,6 +111,13 @@ export async function getUserByOpenId(openId: string) {
   }
 
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
@@ -128,6 +156,105 @@ export async function updateUserProfile(userId: number, data: { name?: string; s
   if (Object.keys(updateData).length > 0) {
     await db.update(users).set(updateData).where(eq(users.id, userId));
   }
+}
+
+// ===== Email/Password Auth Helpers =====
+
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 12);
+}
+
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
+}
+
+export async function registerUser(data: {
+  email: string;
+  password: string;
+  name: string;
+  storeName?: string;
+  phone?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const db = await getDb();
+  if (!db) return { success: false, error: "Banco de dados indisponível" };
+
+  // Check if email already exists
+  const existing = await getUserByEmail(data.email);
+  if (existing) {
+    return { success: false, error: "Este email já está cadastrado" };
+  }
+
+  const hashedPassword = await hashPassword(data.password);
+  const openId = `email:${data.email}`;
+
+  await db.insert(users).values({
+    openId,
+    email: data.email,
+    password: hashedPassword,
+    name: data.name,
+    storeName: data.storeName ?? null,
+    phone: data.phone ?? null,
+    loginMethod: "email",
+    role: "user",
+    status: "pending",
+    lastSignedIn: new Date(),
+  });
+
+  return { success: true };
+}
+
+export async function loginUser(email: string, password: string): Promise<{ success: boolean; user?: any; error?: string }> {
+  const user = await getUserByEmail(email);
+  if (!user) {
+    return { success: false, error: "Email ou senha incorretos" };
+  }
+
+  if (!user.password) {
+    return { success: false, error: "Esta conta usa login social. Use o botão de login com Manus." };
+  }
+
+  const valid = await verifyPassword(password, user.password);
+  if (!valid) {
+    return { success: false, error: "Email ou senha incorretos" };
+  }
+
+  // Update last signed in
+  const db = await getDb();
+  if (db) {
+    await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, user.id));
+  }
+
+  return { success: true, user };
+}
+
+/**
+ * Seed admin user if not exists
+ */
+export async function seedAdminUser(email: string, password: string, name: string): Promise<void> {
+  const existing = await getUserByEmail(email);
+  if (existing) {
+    console.log(`[Seed] Admin user ${email} already exists`);
+    return;
+  }
+
+  const hashedPassword = await hashPassword(password);
+  const openId = `email:${email}`;
+
+  const db = await getDb();
+  if (!db) return;
+
+  await db.insert(users).values({
+    openId,
+    email,
+    password: hashedPassword,
+    name,
+    loginMethod: "email",
+    role: "admin",
+    status: "active",
+    lastSignedIn: new Date(),
+  });
+
+  console.log(`[Seed] Admin user ${email} created successfully`);
 }
 
 // App Settings helpers

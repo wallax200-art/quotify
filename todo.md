@@ -17,3 +17,9 @@
 - [x] Integrar botão WhatsApp para solicitar acesso
 - [x] Proteger rotas do dashboard (apenas usuários ativos)
 - [x] Atualizar branding em todo o app
+- [x] Implementar sistema de login/cadastro com email e senha
+- [x] Adicionar campos password, phone, storeName ao schema do banco
+- [x] Criar rotas de registro e login com bcrypt
+- [x] Criar formulários de login e cadastro na Landing page
+- [x] Pré-cadastrar conta admin (walax200@gmail.com)
+- [x] Manter compatibilidade com Manus OAuth existente

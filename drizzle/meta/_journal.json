@@ -15,6 +15,13 @@
       "when": 1772302890570,
       "tag": "0001_certain_sway",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1772305116837,
+      "tag": "0002_adorable_rhino",
+      "breakpoints": true
     }
   ]
 }
