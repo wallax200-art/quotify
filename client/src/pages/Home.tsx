@@ -38,6 +38,10 @@ export default function Home() {
     selectProduct,
     selectUpgrade,
     toggleDeduction,
+    updateDeductionValue,
+    addCustomDeduction,
+    removeCustomDeduction,
+    updateCustomDeduction,
     setInstallments,
     updateRate,
     resetRates,
@@ -60,8 +64,8 @@ export default function Home() {
       badge: state.selectedUpgrade ? state.selectedUpgrade.name.replace("iPhone ", "") : undefined,
     },
     condicao: {
-      done: state.selectedDeductions.length > 0,
-      badge: state.selectedDeductions.length > 0 ? `${state.selectedDeductions.length}` : undefined,
+      done: state.activeDeductions.length > 0 || state.customDeductions.length > 0,
+      badge: (state.activeDeductions.length + state.customDeductions.length) > 0 ? `${state.activeDeductions.length + state.customDeductions.length}` : undefined,
     },
     parcelas: {
       done: state.selectedInstallments > 0,
@@ -149,10 +153,16 @@ export default function Home() {
               )}
               {activeTab === "condicao" && (
                 <ConditionDeductions
-                  selectedDeductions={state.selectedDeductions}
+                  activeDeductions={state.activeDeductions}
+                  customDeductions={state.customDeductions}
                   onToggle={toggleDeduction}
+                  onUpdateValue={updateDeductionValue}
+                  onAddCustom={addCustomDeduction}
+                  onRemoveCustom={removeCustomDeduction}
+                  onUpdateCustom={updateCustomDeduction}
                   disabled={!state.selectedUpgrade}
                   totalDeductions={calculations.totalDeductions}
+                  totalBonus={calculations.totalBonus}
                 />
               )}
               {activeTab === "parcelas" && (

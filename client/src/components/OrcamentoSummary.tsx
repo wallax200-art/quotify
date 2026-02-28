@@ -134,11 +134,11 @@ export default function OrcamentoSummary({
                   {calculations.deductionDetails.map((d, i) => (
                     <div key={i} className="flex items-center justify-between py-0.5">
                       <div className="flex items-center gap-1.5">
-                        <AlertTriangle className="w-3 h-3 text-destructive/70" />
+                        <AlertTriangle className={`w-3 h-3 ${d.isBonus ? "text-emerald/70" : "text-destructive/70"}`} />
                         <span className="text-xs text-muted-foreground">{d.label}</span>
                       </div>
-                      <span className="money-value text-xs text-destructive">
-                        +{formatCurrency(d.value)}
+                      <span className={`money-value text-xs ${d.isBonus ? "text-emerald" : "text-destructive"}`}>
+                        {d.isBonus ? "-" : "+"}{formatCurrency(Math.abs(d.value))}
                       </span>
                     </div>
                   ))}
@@ -147,7 +147,7 @@ export default function OrcamentoSummary({
                       Total abatimentos
                     </span>
                     <span className="money-value text-xs text-destructive font-bold">
-                      +{formatCurrency(calculations.totalDeductions)}
+                      +{formatCurrency(calculations.netDeductions)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between pt-1">
