@@ -1,7 +1,7 @@
 /**
- * Home — Página principal do aplicativo de orçamentos
+ * Home — Página principal — Tio Sam Imports
+ * Sistema de Orçamentos com fórmula exata da maquininha
  * Design: Tech Workspace — Layout responsivo com sidebar de resumo
- * Azul petróleo (#1B4965), verde esmeralda (#2D6A4F), cinza quente
  */
 import { useState } from "react";
 import { useOrcamento } from "@/hooks/useOrcamento";
@@ -64,8 +64,8 @@ export default function Home() {
       badge: state.selectedDeductions.length > 0 ? `${state.selectedDeductions.length}` : undefined,
     },
     parcelas: {
-      done: state.selectedInstallments > 1,
-      badge: state.selectedInstallments > 1 ? `${state.selectedInstallments}x` : undefined,
+      done: state.selectedInstallments > 0,
+      badge: state.selectedInstallments > 0 ? `${state.selectedInstallments}x` : undefined,
     },
   };
 
@@ -79,7 +79,7 @@ export default function Home() {
               <Receipt className="w-4.5 h-4.5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-sm font-bold text-foreground leading-tight tracking-tight">Orçamento Loja</h1>
+              <h1 className="text-sm font-bold text-foreground leading-tight tracking-tight">Tio Sam Imports</h1>
               <p className="text-[10px] text-muted-foreground leading-tight">Sistema de Orçamentos</p>
             </div>
           </div>
@@ -239,7 +239,7 @@ export default function Home() {
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-card/95 backdrop-blur-sm border-t border-border px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Valor a Pagar</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">À Vista PIX</p>
               <p className="money-value text-lg text-foreground">
                 {formatCurrency(calculations.amountToPay)}
               </p>

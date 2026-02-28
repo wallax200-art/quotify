@@ -2,49 +2,44 @@ import { useState, useCallback, useMemo } from "react";
 import {
   Product,
   UpgradeProduct,
-  ConditionDeduction,
   InstallmentRate,
   DEFAULT_INSTALLMENT_RATES,
   CONDITION_DEDUCTIONS,
+  calcularParcela,
+  calcularTotalParcelado,
 } from "@/lib/data";
 
 export interface OrcamentoState {
-  // Produto selecionado para compra
   selectedProduct: Product | null;
-  // Produto de upgrade (troca) do cliente
   selectedUpgrade: UpgradeProduct | null;
-  // Abatimentos por condição do aparelho de upgrade
   selectedDeductions: string[];
-  // Taxas de parcelamento (editáveis)
   installmentRates: InstallmentRate[];
-  // Parcelas selecionadas
-  selectedInstallments: number;
+  selectedInstallments: number; // 0 = à vista PIX, ou 8/10/12/18
+}
+
+export interface InstallmentDetail {
+  installments: number;
+  rate: number;
+  parcela: number;
+  total: number;
+  label: string;
 }
 
 export interface OrcamentoCalculations {
-  // Valor do produto novo
   productPrice: number;
-  // Valor de avaliação do upgrade
   upgradeValue: number;
-  // Total de abatimentos por condição
   totalDeductions: number;
-  // Valor líquido do upgrade (após abatimentos por condição)
   netUpgradeValue: number;
-  // Valor a pagar (produto - upgrade líquido)
-  amountToPay: number;
-  // Taxa de parcelamento aplicada
-  installmentRate: number;
-  // Valor total com juros
-  totalWithInterest: number;
-  // Valor de cada parcela
-  installmentValue: number;
-  // Valor dos juros
-  interestAmount: number;
+  amountToPay: number; // valor à vista no PIX (base real)
+  // Todas as opções de parcelamento calculadas
+  installmentOptions: InstallmentDetail[];
+  // Parcela selecionada (se houver)
+  selectedDetail: InstallmentDetail | null;
   // Detalhes dos abatimentos
   deductionDetails: { label: string; value: number }[];
 }
 
-const STORAGE_KEY = "orcamento-loja-rates";
+const STORAGE_KEY = "tiosam-rates-v2";
 
 function loadSavedRates(): InstallmentRate[] | null {
   try {
@@ -72,7 +67,7 @@ export function useOrcamento() {
     selectedUpgrade: null,
     selectedDeductions: [],
     installmentRates: loadSavedRates() || DEFAULT_INSTALLMENT_RATES.map((r) => ({ ...r })),
-    selectedInstallments: 1,
+    selectedInstallments: 0, // 0 = à vista PIX
   });
 
   // --- Ações ---
@@ -116,6 +111,7 @@ export function useOrcamento() {
 
   const resetRates = useCallback(() => {
     const defaults = DEFAULT_INSTALLMENT_RATES.map((r) => ({ ...r }));
+    localStorage.removeItem(STORAGE_KEY);
     saveRates(defaults);
     setState((prev) => ({ ...prev, installmentRates: defaults }));
   }, []);
@@ -126,7 +122,7 @@ export function useOrcamento() {
       selectedProduct: null,
       selectedUpgrade: null,
       selectedDeductions: [],
-      selectedInstallments: 1,
+      selectedInstallments: 0,
     }));
   }, []);
 
@@ -145,24 +141,27 @@ export function useOrcamento() {
     // Valor líquido do upgrade
     const netUpgradeValue = Math.max(0, upgradeValue - totalDeductions);
 
-    // Valor a pagar
+    // Valor a pagar (à vista no PIX — base real)
     const amountToPay = Math.max(0, productPrice - netUpgradeValue);
 
-    // Taxa de parcelamento
-    const rateObj = state.installmentRates.find(
-      (r) => r.installments === state.selectedInstallments
-    );
-    const installmentRate = rateObj?.rate ?? 0;
+    // Calcular TODAS as opções de parcelamento com a fórmula exata
+    // Fórmula: Parcela = (Valor ÷ (1 − taxa)) ÷ número de parcelas
+    const installmentOptions: InstallmentDetail[] = state.installmentRates.map((r) => {
+      const parcela = calcularParcela(amountToPay, r.rate, r.installments);
+      const total = calcularTotalParcelado(amountToPay, r.rate, r.installments);
+      return {
+        installments: r.installments,
+        rate: r.rate,
+        parcela,
+        total,
+        label: r.label,
+      };
+    });
 
-    // Valor total com juros
-    const interestAmount = amountToPay * (installmentRate / 100);
-    const totalWithInterest = amountToPay + interestAmount;
-
-    // Valor da parcela
-    const installmentValue =
-      state.selectedInstallments > 0
-        ? totalWithInterest / state.selectedInstallments
-        : totalWithInterest;
+    // Detalhe da parcela selecionada
+    const selectedDetail = state.selectedInstallments > 0
+      ? installmentOptions.find((o) => o.installments === state.selectedInstallments) || null
+      : null;
 
     return {
       productPrice,
@@ -171,10 +170,8 @@ export function useOrcamento() {
       netUpgradeValue,
       deductionDetails,
       amountToPay,
-      installmentRate,
-      totalWithInterest,
-      installmentValue,
-      interestAmount,
+      installmentOptions,
+      selectedDetail,
     };
   }, [state]);
 

@@ -1,6 +1,7 @@
 // ============================================================
-// DADOS CENTRALIZADOS DO APLICATIVO DE ORÇAMENTOS
-// Design: Tech Workspace — Azul Petróleo + Verde Esmeralda
+// DADOS CENTRALIZADOS — TIO SAM IMPORTS
+// Fórmula: Parcela = (Valor ÷ (1 − taxa)) ÷ número de parcelas
+// Taxas FIXAS: 8x=9,630% | 10x=10,760% | 12x=11,880% | 18x=17,000%
 // ============================================================
 
 // --- PRODUTOS À VENDA (iPhones novos) ---
@@ -137,27 +138,44 @@ export const CONDITION_DEDUCTIONS: ConditionDeduction[] = [
   { id: "touch-defeito", label: "Touch com Defeito", description: "Tela touch com áreas sem resposta", deductionValue: 350, icon: "hand" },
 ];
 
-// --- TAXAS DE PARCELAMENTO PADRÃO ---
+// --- TAXAS DE PARCELAMENTO FIXAS — TIO SAM IMPORTS ---
+// REGRA ABSOLUTA: Parcela = (Valor ÷ (1 − taxa)) ÷ número de parcelas
+// Taxas FIXAS e IMUTÁVEIS: 8x=9,630% | 10x=10,760% | 12x=11,880% | 18x=17,000%
 export interface InstallmentRate {
   installments: number;
-  rate: number; // percentual (ex: 5.99 = 5.99%)
+  rate: number; // percentual decimal (ex: 0.09630 = 9,630%)
   label: string;
 }
 
 export const DEFAULT_INSTALLMENT_RATES: InstallmentRate[] = [
-  { installments: 1, rate: 0, label: "À Vista" },
-  { installments: 2, rate: 0, label: "2x sem juros" },
-  { installments: 3, rate: 0, label: "3x sem juros" },
-  { installments: 4, rate: 5.59, label: "4x" },
-  { installments: 5, rate: 6.86, label: "5x" },
-  { installments: 6, rate: 8.14, label: "6x" },
-  { installments: 7, rate: 9.44, label: "7x" },
-  { installments: 8, rate: 10.75, label: "8x" },
-  { installments: 9, rate: 12.08, label: "9x" },
-  { installments: 10, rate: 13.42, label: "10x" },
-  { installments: 11, rate: 14.78, label: "11x" },
-  { installments: 12, rate: 16.15, label: "12x" },
+  { installments: 8, rate: 0.09630, label: "8x" },
+  { installments: 10, rate: 0.10760, label: "10x" },
+  { installments: 12, rate: 0.11880, label: "12x" },
+  { installments: 18, rate: 0.17000, label: "18x" },
 ];
+
+/**
+ * Calcula o valor da parcela usando a fórmula EXATA da maquininha:
+ * Parcela = (Valor ÷ (1 − taxa)) ÷ número de parcelas
+ * 
+ * - NÃO arredondar nenhum valor intermediário
+ * - Arredondar apenas o valor final da parcela para 2 casas decimais
+ */
+export function calcularParcela(valor: number, taxa: number, parcelas: number): number {
+  // Fórmula: (Valor / (1 - taxa)) / parcelas
+  const valorComTaxa = valor / (1 - taxa);
+  const valorParcela = valorComTaxa / parcelas;
+  // Arredondar apenas o valor final para 2 casas decimais
+  return Math.round(valorParcela * 100) / 100;
+}
+
+/**
+ * Calcula o valor total parcelado (parcela * número de parcelas)
+ */
+export function calcularTotalParcelado(valor: number, taxa: number, parcelas: number): number {
+  const parcela = calcularParcela(valor, taxa, parcelas);
+  return parcela * parcelas;
+}
 
 // --- HELPERS ---
 export function formatCurrency(value: number): string {
@@ -167,10 +185,57 @@ export function formatCurrency(value: number): string {
   }).format(value);
 }
 
+export function formatCurrencyCode(value: number): string {
+  return `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 export function getProductCategories(products: Product[]): string[] {
   return Array.from(new Set(products.map((p) => p.category)));
 }
 
 export function getUpgradeCategories(products: UpgradeProduct[]): string[] {
   return Array.from(new Set(products.map((p) => p.category)));
+}
+
+/**
+ * Gera o texto do orçamento formatado para WhatsApp
+ * Segue EXATAMENTE o padrão da Tio Sam Imports
+ */
+export function gerarOrcamentoTexto(
+  product: Product,
+  upgrade: UpgradeProduct | null,
+  amountToPay: number,
+): string {
+  const lines: string[] = [];
+
+  lines.push("📱 Orçamento – Tio Sam Imports");
+  lines.push("");
+  lines.push(`📲 ${product.name}`);
+  lines.push(`${product.storage}`);
+  lines.push(`💰 Valor do aparelho: \`${formatCurrencyCode(product.price)}\``);
+  lines.push("");
+
+  if (upgrade) {
+    lines.push("📲 Aparelho dado como parte de pagamento");
+    lines.push(`• ${upgrade.name} ${upgrade.storage}`);
+    lines.push("(considerado na simulação)");
+    lines.push("");
+    lines.push("➡️ Valor final após avaliação");
+    lines.push(`À vista no PIX: \`${formatCurrencyCode(amountToPay)}\``);
+  } else {
+    lines.push(`À vista no PIX: \`${formatCurrencyCode(amountToPay)}\``);
+  }
+
+  lines.push("");
+
+  // Calcular parcelas com a fórmula exata
+  for (const rate of DEFAULT_INSTALLMENT_RATES) {
+    const parcela = calcularParcela(amountToPay, rate.rate, rate.installments);
+    lines.push(`💳 ${rate.installments}x de \`${formatCurrencyCode(parcela)}\``);
+  }
+
+  lines.push("");
+  lines.push("O que achou dessa proposta?");
+
+  return lines.join("\n");
 }

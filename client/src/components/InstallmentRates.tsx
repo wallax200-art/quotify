@@ -1,10 +1,12 @@
 /**
- * InstallmentRates — Taxas de parcelamento editáveis + seleção de parcelas
- * Design: Tech Workspace — tabela editável, destaque na parcela selecionada
+ * InstallmentRates — Taxas de parcelamento Tio Sam Imports
+ * Fórmula: Parcela = (Valor ÷ (1 − taxa)) ÷ número de parcelas
+ * Taxas FIXAS: 8x=9,630% | 10x=10,760% | 12x=11,880% | 18x=17,000%
+ * Taxas são editáveis pelo dono da loja
  */
 import { useState } from "react";
-import { InstallmentRate, formatCurrency } from "@/lib/data";
-import { Percent, RotateCcw, Settings2, ChevronDown, ChevronUp, Info } from "lucide-react";
+import { InstallmentRate, formatCurrency, calcularParcela, calcularTotalParcelado } from "@/lib/data";
+import { Percent, RotateCcw, Settings2, Info, Banknote, CreditCard } from "lucide-react";
 
 interface InstallmentRatesProps {
   rates: InstallmentRate[];
@@ -24,9 +26,6 @@ export default function InstallmentRates({
   amountToPay,
 }: InstallmentRatesProps) {
   const [editMode, setEditMode] = useState(false);
-  const [showAll, setShowAll] = useState(false);
-
-  const displayedRates = showAll ? rates : rates.slice(0, 6);
 
   return (
     <div className="space-y-4">
@@ -66,7 +65,7 @@ export default function InstallmentRates({
         <div className="flex items-center gap-2 p-2.5 bg-primary/5 rounded-lg border border-primary/10">
           <Info className="w-3.5 h-3.5 text-primary shrink-0" />
           <p className="text-[11px] text-muted-foreground">
-            Edite as taxas de juros abaixo. As alterações são salvas automaticamente.
+            Edite as taxas abaixo. Fórmula: Parcela = (Valor ÷ (1 − taxa)) ÷ parcelas. Alterações salvas automaticamente.
           </p>
         </div>
       )}
@@ -80,25 +79,66 @@ export default function InstallmentRates({
         </div>
       )}
 
-      {/* Tabela de parcelas */}
-      <div className="space-y-1.5">
-        {displayedRates.map((rate) => {
+      {/* Opção À Vista PIX */}
+      <div className="space-y-2">
+        <div
+          onClick={() => onSelectInstallments(0)}
+          className={`flex items-center gap-3 px-4 py-4 rounded-xl transition-all cursor-pointer ${
+            selectedInstallments === 0
+              ? "bg-emerald-light border-2 border-emerald/30 shadow-sm"
+              : "bg-card border border-border hover:border-emerald/20 hover:bg-accent/50"
+          }`}
+        >
+          <button
+            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+              selectedInstallments === 0
+                ? "border-emerald bg-emerald"
+                : "border-border hover:border-emerald/50"
+            }`}
+          >
+            {selectedInstallments === 0 && <div className="w-2 h-2 rounded-full bg-white" />}
+          </button>
+
+          <div className="flex items-center gap-2 flex-1">
+            <Banknote className={`w-4 h-4 ${selectedInstallments === 0 ? "text-emerald" : "text-muted-foreground"}`} />
+            <span className={`text-sm font-bold ${selectedInstallments === 0 ? "text-emerald" : "text-foreground"}`}>
+              À Vista no PIX
+            </span>
+          </div>
+
+          {amountToPay > 0 && (
+            <span className={`money-value text-base font-bold ${selectedInstallments === 0 ? "text-emerald" : "text-foreground"}`}>
+              {formatCurrency(amountToPay)}
+            </span>
+          )}
+        </div>
+
+        {/* Separador */}
+        <div className="flex items-center gap-3 py-1">
+          <div className="flex-1 h-px bg-border" />
+          <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Cartão</span>
+          <div className="flex-1 h-px bg-border" />
+        </div>
+
+        {/* Opções de parcelamento */}
+        {rates.map((rate) => {
           const isSelected = selectedInstallments === rate.installments;
-          const total = amountToPay + amountToPay * (rate.rate / 100);
-          const parcela = rate.installments > 0 ? total / rate.installments : total;
+          const parcela = amountToPay > 0 ? calcularParcela(amountToPay, rate.rate, rate.installments) : 0;
+          const total = amountToPay > 0 ? calcularTotalParcelado(amountToPay, rate.rate, rate.installments) : 0;
+          const ratePercent = (rate.rate * 100).toFixed(2);
 
           return (
             <div
               key={rate.installments}
-              className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-all ${
+              onClick={() => onSelectInstallments(rate.installments)}
+              className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all cursor-pointer ${
                 isSelected
-                  ? "bg-primary/8 border border-primary/25 shadow-sm"
+                  ? "bg-primary/8 border-2 border-primary/25 shadow-sm"
                   : "bg-card border border-border hover:border-primary/20 hover:bg-accent/50"
               }`}
             >
-              {/* Seleção */}
+              {/* Radio */}
               <button
-                onClick={() => onSelectInstallments(rate.installments)}
                 className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
                   isSelected
                     ? "border-primary bg-primary"
@@ -109,81 +149,55 @@ export default function InstallmentRates({
               </button>
 
               {/* Label */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className={`text-sm font-bold ${isSelected ? "text-primary" : "text-foreground"}`}>
-                    {rate.installments === 1 ? "À Vista" : `${rate.installments}x`}
-                  </span>
-                  {rate.rate === 0 && rate.installments > 1 && (
-                    <span className="badge-success px-1.5 py-0.5 rounded text-[10px] font-bold">
-                      Sem juros
-                    </span>
-                  )}
-                </div>
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <CreditCard className={`w-4 h-4 shrink-0 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                <span className={`text-sm font-bold ${isSelected ? "text-primary" : "text-foreground"}`}>
+                  {rate.installments}x
+                </span>
               </div>
 
               {/* Taxa editável */}
               {editMode ? (
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="number"
-                    step="0.01"
+                    step="0.001"
                     min="0"
-                    max="100"
+                    max="1"
                     value={rate.rate}
                     onChange={(e) => {
                       const val = parseFloat(e.target.value);
-                      if (!isNaN(val) && val >= 0) {
+                      if (!isNaN(val) && val >= 0 && val < 1) {
                         onUpdateRate(rate.installments, val);
                       }
                     }}
-                    className="w-16 px-2 py-1.5 text-xs text-right font-mono bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                    className="w-20 px-2 py-1.5 text-xs text-right font-mono bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   />
-                  <span className="text-xs text-muted-foreground font-medium">%</span>
+                  <span className="text-[10px] text-muted-foreground font-medium w-12">
+                    ({ratePercent}%)
+                  </span>
                 </div>
               ) : (
                 <span className="text-xs text-muted-foreground font-mono">
-                  {rate.rate > 0 ? `${rate.rate.toFixed(2)}%` : ""}
+                  {ratePercent}%
                 </span>
               )}
 
               {/* Valor da parcela */}
               {amountToPay > 0 && (
-                <div className="text-right shrink-0 min-w-[110px]">
+                <div className="text-right shrink-0 min-w-[120px]">
                   <p className={`money-value text-sm ${isSelected ? "text-primary font-bold" : "text-foreground"}`}>
-                    {rate.installments === 1
-                      ? formatCurrency(parcela)
-                      : `${rate.installments}x ${formatCurrency(parcela)}`}
+                    {rate.installments}x {formatCurrency(parcela)}
                   </p>
-                  {rate.rate > 0 && (
-                    <p className="text-[10px] text-muted-foreground">
-                      Total: {formatCurrency(total)}
-                    </p>
-                  )}
+                  <p className="text-[10px] text-muted-foreground">
+                    Total: {formatCurrency(total)}
+                  </p>
                 </div>
               )}
             </div>
           );
         })}
       </div>
-
-      {/* Ver mais / menos */}
-      {rates.length > 6 && (
-        <button
-          onClick={() => setShowAll(!showAll)}
-          className="w-full flex items-center justify-center gap-1 py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-secondary"
-        >
-          {showAll ? (
-            <>
-              <ChevronUp className="w-3.5 h-3.5" /> Ver menos
-            </>
-          ) : (
-            <>
-              <ChevronDown className="w-3.5 h-3.5" /> Ver todas ({rates.length} parcelas)
-            </>
-          )}
-        </button>
-      )}
     </div>
   );
 }
