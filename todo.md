@@ -24,3 +24,4 @@
 - [x] Pré-cadastrar conta admin (walax200@gmail.com)
 - [x] Manter compatibilidade com Manus OAuth existente
 - [x] Bug: login com email e senha corrigido (email era wallax200 com dois L)
+- [x] Bug: login carrega e volta para a página inicial sem entrar no dashboard

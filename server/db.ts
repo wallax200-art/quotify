@@ -236,19 +236,16 @@ export async function seedAdminUser(email: string, password: string, name: strin
 
   const existing = await getUserByEmail(email);
   if (existing) {
-    // If user exists but has no password, add it
-    if (!existing.password) {
-      const hashedPassword = await hashPassword(password);
-      await db.update(users).set({ 
-        password: hashedPassword, 
-        role: "admin", 
-        status: "active",
-        name: existing.name || name 
-      }).where(eq(users.id, existing.id));
-      console.log(`[Seed] Admin user ${email} updated with password`);
-    } else {
-      console.log(`[Seed] Admin user ${email} already exists`);
-    }
+    // Always ensure admin has password, correct role/status, and email login support
+    const hashedPassword = await hashPassword(password);
+    await db.update(users).set({ 
+      password: hashedPassword, 
+      role: "admin", 
+      status: "active",
+      loginMethod: "email",
+      name: existing.name || name 
+    }).where(eq(users.id, existing.id));
+    console.log(`[Seed] Admin user ${email} updated (password + role + loginMethod)`);
     return;
   }
 
