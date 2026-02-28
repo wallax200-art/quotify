@@ -1,25 +1,258 @@
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { Streamdown } from 'streamdown';
-
 /**
- * All content in this page are only for example, replace with your own feature implementation
- * When building pages, remember your instructions in Frontend Best Practices, Design Guide and Common Pitfalls
+ * Home — Página principal do aplicativo de orçamentos
+ * Design: Tech Workspace — Layout responsivo com sidebar de resumo
+ * Azul petróleo (#1B4965), verde esmeralda (#2D6A4F), cinza quente
  */
+import { useState } from "react";
+import { useOrcamento } from "@/hooks/useOrcamento";
+import ProductSelector from "@/components/ProductSelector";
+import UpgradeSelector from "@/components/UpgradeSelector";
+import ConditionDeductions from "@/components/ConditionDeductions";
+import InstallmentRates from "@/components/InstallmentRates";
+import OrcamentoSummary from "@/components/OrcamentoSummary";
+import { formatCurrency } from "@/lib/data";
+import {
+  Smartphone,
+  ArrowLeftRight,
+  AlertTriangle,
+  Percent,
+  Receipt,
+  Menu,
+  X,
+  ChevronRight,
+} from "lucide-react";
+
+type TabId = "produto" | "upgrade" | "condicao" | "parcelas";
+
+const TABS: { id: TabId; label: string; shortLabel: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: "produto", label: "Produto", shortLabel: "Produto", icon: Smartphone },
+  { id: "upgrade", label: "Troca", shortLabel: "Troca", icon: ArrowLeftRight },
+  { id: "condicao", label: "Condição", shortLabel: "Cond.", icon: AlertTriangle },
+  { id: "parcelas", label: "Parcelas", shortLabel: "Parc.", icon: Percent },
+];
+
 export default function Home() {
-  // If theme is switchable in App.tsx, we can implement theme toggling like this:
-  // const { theme, toggleTheme } = useTheme();
+  const {
+    state,
+    calculations,
+    selectProduct,
+    selectUpgrade,
+    toggleDeduction,
+    setInstallments,
+    updateRate,
+    resetRates,
+    resetAll,
+  } = useOrcamento();
+
+  const [activeTab, setActiveTab] = useState<TabId>("produto");
+  const [showSummary, setShowSummary] = useState(false);
+
+  const hasSelection = state.selectedProduct || state.selectedUpgrade;
+
+  // Indicadores de status para cada tab
+  const tabStatus: Record<TabId, { done: boolean; badge?: string }> = {
+    produto: {
+      done: !!state.selectedProduct,
+      badge: state.selectedProduct ? state.selectedProduct.name.replace("iPhone ", "") : undefined,
+    },
+    upgrade: {
+      done: !!state.selectedUpgrade,
+      badge: state.selectedUpgrade ? state.selectedUpgrade.name.replace("iPhone ", "") : undefined,
+    },
+    condicao: {
+      done: state.selectedDeductions.length > 0,
+      badge: state.selectedDeductions.length > 0 ? `${state.selectedDeductions.length}` : undefined,
+    },
+    parcelas: {
+      done: state.selectedInstallments > 1,
+      badge: state.selectedInstallments > 1 ? `${state.selectedInstallments}x` : undefined,
+    },
+  };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <main>
-        {/* Example: lucide-react for icons */}
-        <Loader2 className="animate-spin" />
-        Example Page
-        {/* Example: Streamdown for markdown rendering */}
-        <Streamdown>Any **markdown** content</Streamdown>
-        <Button variant="default">Example Button</Button>
-      </main>
+    <div className="min-h-screen bg-background pb-20 lg:pb-0">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border shadow-sm">
+        <div className="container flex items-center justify-between h-14">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-sm">
+              <Receipt className="w-4.5 h-4.5 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-sm font-bold text-foreground leading-tight tracking-tight">Orçamento Loja</h1>
+              <p className="text-[10px] text-muted-foreground leading-tight">Sistema de Orçamentos</p>
+            </div>
+          </div>
+
+          {/* Botão resumo mobile */}
+          <button
+            onClick={() => setShowSummary(!showSummary)}
+            className="lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold shadow-sm active:scale-95 transition-transform"
+          >
+            {showSummary ? <X className="w-3.5 h-3.5" /> : <Menu className="w-3.5 h-3.5" />}
+            {showSummary ? "Fechar" : "Resumo"}
+            {hasSelection && !showSummary && (
+              <span className="ml-1 px-1.5 py-0.5 rounded bg-white/20 text-[10px]">
+                {formatCurrency(calculations.amountToPay)}
+              </span>
+            )}
+          </button>
+        </div>
+      </header>
+
+      {/* Layout principal */}
+      <div className="container py-4 lg:py-6">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Coluna principal */}
+          <div className="flex-1 min-w-0">
+            {/* Tabs de navegação */}
+            <div className="flex gap-1 p-1 bg-secondary rounded-xl mb-5 shadow-inner">
+              {TABS.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                const status = tabStatus[tab.id];
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`relative flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-xs font-medium transition-all ${
+                      isActive
+                        ? "bg-card text-foreground shadow-md"
+                        : "text-muted-foreground hover:text-foreground hover:bg-card/50"
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                    <span className="hidden sm:inline">{tab.label}</span>
+                    <span className="sm:hidden">{tab.shortLabel}</span>
+                    {/* Indicador de status */}
+                    {status.done && !isActive && (
+                      <span className="absolute -top-1 -right-0.5 w-2 h-2 rounded-full bg-emerald ring-2 ring-secondary" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Conteúdo da tab ativa */}
+            <div className="bg-card rounded-xl border border-border p-4 sm:p-5 shadow-sm">
+              {activeTab === "produto" && (
+                <ProductSelector
+                  selectedProduct={state.selectedProduct}
+                  onSelect={selectProduct}
+                />
+              )}
+              {activeTab === "upgrade" && (
+                <UpgradeSelector
+                  selectedUpgrade={state.selectedUpgrade}
+                  onSelect={selectUpgrade}
+                />
+              )}
+              {activeTab === "condicao" && (
+                <ConditionDeductions
+                  selectedDeductions={state.selectedDeductions}
+                  onToggle={toggleDeduction}
+                  disabled={!state.selectedUpgrade}
+                  totalDeductions={calculations.totalDeductions}
+                />
+              )}
+              {activeTab === "parcelas" && (
+                <InstallmentRates
+                  rates={state.installmentRates}
+                  selectedInstallments={state.selectedInstallments}
+                  onSelectInstallments={setInstallments}
+                  onUpdateRate={updateRate}
+                  onResetRates={resetRates}
+                  amountToPay={calculations.amountToPay}
+                />
+              )}
+            </div>
+
+            {/* Navegação rápida entre etapas */}
+            <div className="flex items-center justify-between mt-4">
+              {activeTab !== "produto" && (
+                <button
+                  onClick={() => {
+                    const idx = TABS.findIndex((t) => t.id === activeTab);
+                    if (idx > 0) setActiveTab(TABS[idx - 1].id);
+                  }}
+                  className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+                >
+                  <ChevronRight className="w-3.5 h-3.5 rotate-180" />
+                  Anterior
+                </button>
+              )}
+              <div className="flex-1" />
+              {activeTab !== "parcelas" && (
+                <button
+                  onClick={() => {
+                    const idx = TABS.findIndex((t) => t.id === activeTab);
+                    if (idx < TABS.length - 1) setActiveTab(TABS[idx + 1].id);
+                  }}
+                  className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-all"
+                >
+                  Próximo
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Sidebar — Resumo do orçamento (desktop) */}
+          <div className="hidden lg:block w-[380px] shrink-0">
+            <div className="sticky top-20">
+              <div className="bg-card rounded-xl border border-border p-5 shadow-sm">
+                <OrcamentoSummary
+                  selectedProduct={state.selectedProduct}
+                  selectedUpgrade={state.selectedUpgrade}
+                  calculations={calculations}
+                  selectedInstallments={state.selectedInstallments}
+                  onReset={resetAll}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Resumo mobile (overlay) */}
+      {showSummary && (
+        <div className="lg:hidden fixed inset-0 z-40">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setShowSummary(false)}
+          />
+          <div className="absolute bottom-0 left-0 right-0 max-h-[85vh] bg-card rounded-t-2xl border-t border-border p-5 overflow-y-auto animate-in slide-in-from-bottom duration-300">
+            <div className="w-10 h-1 bg-border rounded-full mx-auto mb-4" />
+            <OrcamentoSummary
+              selectedProduct={state.selectedProduct}
+              selectedUpgrade={state.selectedUpgrade}
+              calculations={calculations}
+              selectedInstallments={state.selectedInstallments}
+              onReset={resetAll}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Barra fixa mobile com valor */}
+      {hasSelection && !showSummary && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-card/95 backdrop-blur-sm border-t border-border px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Valor a Pagar</p>
+              <p className="money-value text-lg text-foreground">
+                {formatCurrency(calculations.amountToPay)}
+              </p>
+            </div>
+            <button
+              onClick={() => setShowSummary(true)}
+              className="px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold shadow-sm active:scale-95 transition-transform"
+            >
+              Ver Orçamento
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
