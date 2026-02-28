@@ -1,9 +1,10 @@
 /**
- * Home — Página principal — Tio Sam Imports
+ * Home — Dashboard principal — Quotify
  * Sistema de Orçamentos com fórmula exata da maquininha
- * Design: Tech Workspace — Layout responsivo com sidebar de resumo
+ * Protegido: apenas usuários ativos ou admin podem acessar
  */
-import { useState } from "react";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { useState, useEffect } from "react";
 import { useOrcamento } from "@/hooks/useOrcamento";
 import { useConfig } from "@/contexts/ConfigContext";
 import ProductSelector from "@/components/ProductSelector";
@@ -12,17 +13,20 @@ import ConditionDeductions from "@/components/ConditionDeductions";
 import InstallmentRates from "@/components/InstallmentRates";
 import OrcamentoSummary from "@/components/OrcamentoSummary";
 import { formatCurrency } from "@/lib/data";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   Smartphone,
   ArrowLeftRight,
   AlertTriangle,
   Percent,
-  Receipt,
+  Calculator,
   Menu,
   X,
   ChevronRight,
   Settings,
+  Shield,
+  LogOut,
+  Loader2,
 } from "lucide-react";
 
 type TabId = "produto" | "upgrade" | "condicao" | "parcelas";
@@ -35,6 +39,8 @@ const TABS: { id: TabId; label: string; shortLabel: string; icon: React.Componen
 ];
 
 export default function Home() {
+  const { user, loading, isAuthenticated, logout } = useAuth();
+  const [, setLocation] = useLocation();
   const config = useConfig();
 
   const {
@@ -54,7 +60,33 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>("produto");
   const [showSummary, setShowSummary] = useState(false);
 
+  // Redirect non-active users to landing
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      setLocation("/");
+      return;
+    }
+    if (!loading && user) {
+      const status = (user as any).status;
+      const role = (user as any).role;
+      if (status !== "active" && role !== "admin") {
+        setLocation("/");
+      }
+    }
+  }, [loading, isAuthenticated, user, setLocation]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
   const hasSelection = state.selectedProduct || state.selectedUpgrade;
+  const isAdmin = (user as any).role === "admin";
 
   // Indicadores de status para cada tab
   const tabStatus: Record<TabId, { done: boolean; badge?: string }> = {
@@ -83,19 +115,38 @@ export default function Home() {
         <div className="container flex items-center justify-between h-14">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-sm">
-              <Receipt className="w-4.5 h-4.5 text-primary-foreground" />
+              <Calculator className="w-4.5 h-4.5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-sm font-bold text-foreground leading-tight tracking-tight">Tio Sam Imports</h1>
+              <h1 className="text-sm font-bold text-foreground leading-tight tracking-tight">Quotify</h1>
               <p className="text-[10px] text-muted-foreground leading-tight">Sistema de Orçamentos</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Botão configurações */}
+          <div className="flex items-center gap-1.5">
+            {/* Admin button */}
+            {isAdmin && (
+              <Link href="/admin" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors" title="Painel Admin">
+                <Shield className="w-4.5 h-4.5" />
+              </Link>
+            )}
+
+            {/* Configurações */}
             <Link href="/configuracoes" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors" title="Configurações">
               <Settings className="w-4.5 h-4.5" />
             </Link>
+
+            {/* Logout */}
+            <button
+              onClick={async () => {
+                await logout();
+                setLocation("/");
+              }}
+              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              title="Sair"
+            >
+              <LogOut className="w-4.5 h-4.5" />
+            </button>
 
             {/* Botão resumo mobile */}
             <button

@@ -1,5 +1,5 @@
 /**
- * InstallmentRates — Taxas de parcelamento Tio Sam Imports
+ * InstallmentRates — Taxas de parcelamento Quotify Imports
  * Fórmula: Parcela = (Valor ÷ (1 − taxa)) ÷ número de parcelas
  * Taxas FIXAS: 8x=9,630% | 10x=10,760% | 12x=11,880% | 18x=17,000%
  * Taxas são editáveis pelo dono da loja

@@ -1,5 +1,5 @@
 /**
- * OrcamentoSummary — Resumo do orçamento Tio Sam Imports
+ * OrcamentoSummary — Resumo do orçamento Quotify Imports
  * Mostra resumo + botão para gerar texto formatado para WhatsApp
  * Fórmula: Parcela = (Valor ÷ (1 − taxa)) ÷ número de parcelas
  */

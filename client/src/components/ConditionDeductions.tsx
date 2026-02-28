@@ -1,6 +1,6 @@
 /**
  * ConditionDeductions — Abatimentos por condição do aparelho de troca
- * Conforme Manual Interno de Compra e Upgrade — Tio Sam Imports
+ * Conforme Manual Interno de Compra e Upgrade — Quotify Imports
  * Valores EDITÁVEIS + opção "Outros" com campo livre
  */
 import { useState } from "react";

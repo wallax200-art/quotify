@@ -1,5 +1,5 @@
 // ============================================================
-// DADOS CENTRALIZADOS — TIO SAM IMPORTS
+// DADOS CENTRALIZADOS — QUOTIFY
 // Fórmula: Parcela = (Valor ÷ (1 − taxa)) ÷ número de parcelas
 // Taxas FIXAS: 8x=9,630% | 10x=10,760% | 12x=11,880% | 18x=17,000%
 // ============================================================
@@ -697,7 +697,7 @@ export function gerarOrcamentoTexto(
 ): string {
   const lines: string[] = [];
 
-  lines.push("📱 Orçamento – Tio Sam Imports");
+  lines.push("📱 Orçamento – Quotify");
   lines.push("");
   lines.push(`📲 ${product.name}`);
   const details: string[] = product.storage !== "-" ? [product.storage] : [];

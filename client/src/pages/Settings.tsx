@@ -1,5 +1,5 @@
 /**
- * Settings — Página de Configurações — Tio Sam Imports
+ * Settings — Página de Configurações — Quotify
  * CRUD completo para: Produtos, Upgrade, Abatimentos, Taxas, Categorias, Texto
  * Design: Tech Workspace
  */
@@ -367,7 +367,7 @@ export default function Settings() {
       <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border shadow-sm">
         <div className="container flex items-center justify-between h-14">
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/dashboard" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
               <ArrowLeft className="w-4 h-4" />
             </Link>
             <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-sm">
@@ -375,7 +375,7 @@ export default function Settings() {
             </div>
             <div>
               <h1 className="text-sm font-bold text-foreground leading-tight tracking-tight">Configurações</h1>
-              <p className="text-[10px] text-muted-foreground leading-tight">Tio Sam Imports</p>
+              <p className="text-[10px] text-muted-foreground leading-tight">Quotify</p>
             </div>
           </div>
         </div>
@@ -754,7 +754,7 @@ export default function Settings() {
                   <div className="bg-secondary/50 rounded-lg p-4 border border-border">
                     <p className="text-xs font-medium text-foreground mb-2">Pré-visualização do orçamento:</p>
                     <div className="bg-gray-900 text-gray-100 rounded-lg p-4 font-mono text-xs space-y-1 whitespace-pre-wrap">
-                      {"📱 Orçamento – Tio Sam Imports\n\n📲 iPhone 16 Pro Max\n256GB • Titânio Natural • Lacrado\n💰 Valor do aparelho: `R$ 9.499,00`\n\nÀ vista no PIX: `R$ 9.499,00`\n\n💳 8x de `R$ 1.313,90`\n💳 10x de `R$ 1.064,43`\n💳 12x de `R$ 898,30`\n💳 18x de `R$ 635,81`\n\n" + config.closingText}
+                      {"📱 Orçamento – Quotify\n\n📲 iPhone 16 Pro Max\n256GB • Titânio Natural • Lacrado\n💰 Valor do aparelho: `R$ 9.499,00`\n\nÀ vista no PIX: `R$ 9.499,00`\n\n💳 8x de `R$ 1.313,90`\n💳 10x de `R$ 1.064,43`\n💳 12x de `R$ 898,30`\n💳 18x de `R$ 635,81`\n\n" + config.closingText}
                     </div>
                   </div>
                 </div>
