@@ -1,0 +1,30 @@
+{
+  "query": "SELECT id, openId, name, email, loginMethod, role, status, password IS NOT NULL as hasPassword FROM users ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2pUNe727c8yqxdN.root --database ji3XHgPR7e79CMEH66Wkcf --execute SELECT id, openId, name, email, loginMethod, role, status, password IS NOT NULL as hasPassword FROM users ORDER BY id;",
+  "rows": [
+    {
+      "id": "1",
+      "openId": "GDHyzUdkQzjNtRNDJURGEK",
+      "name": "walax cruz",
+      "email": "wallax200@gmail.com",
+      "loginMethod": "apple",
+      "role": "admin",
+      "status": "active",
+      "hasPassword": "0"
+    },
+    {
+      "id": "22",
+      "openId": "email:walax200@gmail.com",
+      "name": "walax cruz",
+      "email": "walax200@gmail.com",
+      "loginMethod": "email",
+      "role": "admin",
+      "status": "active",
+      "hasPassword": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\topenId\tname\temail\tloginMethod\trole\tstatus\thasPassword\n1\tGDHyzUdkQzjNtRNDJURGEK\twalax cruz\twallax200@gmail.com\tapple\tadmin\tactive\t0\n22\temail:walax200@gmail.com\twalax cruz\twalax200@gmail.com\temail\tadmin\tactive\t1\n",
+  "stderr": "",
+  "execution_time_ms": 402
+}

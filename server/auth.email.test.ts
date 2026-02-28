@@ -16,9 +16,10 @@ describe("Email/Password Auth", () => {
     expect(isInvalid).toBe(false);
   });
 
-  it("should have ADMIN_EMAIL env var set", () => {
+  it("should have ADMIN_EMAIL env var set with valid email", () => {
     expect(process.env.ADMIN_EMAIL).toBeDefined();
     expect(process.env.ADMIN_EMAIL).toContain("@");
+    expect(process.env.ADMIN_EMAIL!.length).toBeGreaterThan(5);
   });
 
   it("should have ADMIN_PASSWORD env var set", () => {

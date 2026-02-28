@@ -210,7 +210,7 @@ export async function loginUser(email: string, password: string): Promise<{ succ
   }
 
   if (!user.password) {
-    return { success: false, error: "Esta conta usa login social. Use o botão de login com Manus." };
+    return { success: false, error: "Email ou senha incorretos" };
   }
 
   const valid = await verifyPassword(password, user.password);
@@ -231,17 +231,29 @@ export async function loginUser(email: string, password: string): Promise<{ succ
  * Seed admin user if not exists
  */
 export async function seedAdminUser(email: string, password: string, name: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
   const existing = await getUserByEmail(email);
   if (existing) {
-    console.log(`[Seed] Admin user ${email} already exists`);
+    // If user exists but has no password, add it
+    if (!existing.password) {
+      const hashedPassword = await hashPassword(password);
+      await db.update(users).set({ 
+        password: hashedPassword, 
+        role: "admin", 
+        status: "active",
+        name: existing.name || name 
+      }).where(eq(users.id, existing.id));
+      console.log(`[Seed] Admin user ${email} updated with password`);
+    } else {
+      console.log(`[Seed] Admin user ${email} already exists`);
+    }
     return;
   }
 
   const hashedPassword = await hashPassword(password);
   const openId = `email:${email}`;
-
-  const db = await getDb();
-  if (!db) return;
 
   await db.insert(users).values({
     openId,

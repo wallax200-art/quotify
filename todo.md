@@ -23,3 +23,4 @@
 - [x] Criar formulários de login e cadastro na Landing page
 - [x] Pré-cadastrar conta admin (walax200@gmail.com)
 - [x] Manter compatibilidade com Manus OAuth existente
+- [x] Bug: login com email e senha corrigido (email era wallax200 com dois L)
