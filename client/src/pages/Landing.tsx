@@ -212,9 +212,7 @@ export default function Landing() {
 
           {/* Logo */}
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-              <Calculator className="w-6 h-6 text-primary-foreground" />
-            </div>
+            <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663367201543/ji3XHgPR7e79CMEH66Wkcf/quotify-logo_86d4c6b7.png" alt="Quotify" className="w-12 h-12 rounded-2xl object-contain" />
             <div>
               <span className="text-2xl font-bold tracking-tight text-foreground">Quotify</span>
               <p className="text-xs text-muted-foreground">Faça login para continuar</p>
@@ -402,11 +400,9 @@ export default function Landing() {
 
           {/* Logo */}
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-              <Calculator className="w-6 h-6 text-primary-foreground" />
-            </div>
+            <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663367201543/ji3XHgPR7e79CMEH66Wkcf/quotify-logo_86d4c6b7.png" alt="Quotify" className="w-12 h-12 rounded-2xl object-contain" />
             <div>
-              <span className="text-2xl font-bold tracking-tight text-foreground">Quotify</span>
+              <h1 className="text-xl font-bold tracking-tight text-foreground">Quotify</h1>
               <p className="text-xs text-muted-foreground">Criar nova conta</p>
             </div>
           </div>
@@ -559,9 +555,7 @@ export default function Landing() {
           {/* Logo + Theme toggle */}
           <div className="flex justify-center mb-10">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-                <Calculator className="w-6 h-6 text-primary-foreground" />
-              </div>
+              <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663367201543/ji3XHgPR7e79CMEH66Wkcf/quotify-logo_86d4c6b7.png" alt="Quotify" className="w-12 h-12 rounded-2xl object-contain" />
               <span className="text-2xl font-bold tracking-tight text-foreground">Quotify</span>
               {toggleTheme && (
                 <button
@@ -723,9 +717,7 @@ export default function Landing() {
       <footer className="border-t border-border py-6">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-              <Calculator className="w-3.5 h-3.5 text-primary-foreground" />
-            </div>
+            <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663367201543/ji3XHgPR7e79CMEH66Wkcf/quotify-logo_86d4c6b7.png" alt="Quotify" className="w-7 h-7 rounded-lg object-contain" />
             <span className="text-sm font-semibold text-foreground">Quotify</span>
           </div>
           <p className="text-xs text-muted-foreground">

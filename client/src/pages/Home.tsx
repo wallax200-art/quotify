@@ -118,9 +118,7 @@ export default function Home() {
       <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border shadow-sm">
         <div className="container flex items-center justify-between h-14">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-sm">
-              <Calculator className="w-4.5 h-4.5 text-primary-foreground" />
-            </div>
+            <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663367201543/ji3XHgPR7e79CMEH66Wkcf/quotify-logo_86d4c6b7.png" alt="Quotify" className="w-9 h-9 rounded-xl object-contain" />
             <div>
               <h1 className="text-sm font-bold text-foreground leading-tight tracking-tight">Quotify</h1>
               <p className="text-[10px] text-muted-foreground leading-tight">Sistema de Orçamentos</p>

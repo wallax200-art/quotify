@@ -27,6 +27,6 @@
 - [x] Bug: login carrega e volta para a página inicial sem entrar no dashboard
 - [x] Bug: login com email/senha funciona na API mas não redireciona para o dashboard (fica na página inicial)
 - [x] Edição inline de preço no catálogo de produtos (sem precisar ir às Configurações)
-- [ ] Adicionar logo do aplicativo (aguardando imagem do utilizador)
+- [x] Adicionar logo do aplicativo ao header, landing page e favicon
 - [x] Adicionar modo claro e modo escuro (toggle de tema)
 - [x] Corrigir botão de edição de preço no card do produto selecionado (não abre o editor)
