@@ -170,8 +170,9 @@ export default function Landing() {
     }
   };
 
-  const whatsappNumber = publicSettings?.adminWhatsapp ?? "5500000000000";
-  const whatsappMessage = encodeURIComponent("Olá, quero solicitar acesso ao Quotify para minha loja.");
+  const rawWhatsapp = publicSettings?.adminWhatsapp ?? "16562426925";
+  const whatsappNumber = rawWhatsapp.replace(/[^\d]/g, "");
+  const whatsappMessage = encodeURIComponent("Olá! Quero fazer o teste grátis do Quotify.");
   const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
 
   // Show status messages for authenticated but not active users
@@ -570,14 +571,13 @@ export default function Landing() {
           </div>
 
           {/* Main headline */}
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground mb-4 leading-tight">
-              Orçamento de troca{" "}
-              <span className="text-primary">simples e rápido.</span>
+          <div className="text-center max-w-2xl mx-auto mb-14 sm:mb-16">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-foreground mb-5 leading-[1.1]">
+              Menos cálculo.{" "}
+              <span className="text-primary">Mais vendas.</span>
             </h1>
-            <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-xl mx-auto">
-              Calcule o valor de troca de iPhones, aplique descontos por condição do aparelho,
-              parcele com as taxas reais da maquininha e envie o orçamento pronto pelo WhatsApp.
+            <p className="text-lg sm:text-xl text-muted-foreground font-medium">
+              O sistema inteligente de orçamento para lojistas de iPhone.
             </p>
           </div>
 

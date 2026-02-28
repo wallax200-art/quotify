@@ -32,3 +32,5 @@
 - [x] Corrigir botão de edição de preço no card do produto selecionado (não abre o editor)
 - [x] Melhorar descrição dos benefícios na landing page (destacar cálculo de troca, orçamento prático, remover "feito pra balcão")
 - [x] Adicionar seção "Por que usar o Quotify?" com 6 cards de benefícios estratégicos (glass design, mobile-first)
+- [x] Simplificar hero: headline "Menos cálculo. Mais vendas." + subheadline curta, remover parágrafo descritivo
+- [x] Corrigir botão WhatsApp para abrir conversa direta com +1 (656) 242-6925 com mensagem de teste grátis
