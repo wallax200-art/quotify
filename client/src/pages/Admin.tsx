@@ -24,15 +24,19 @@ import {
   AlertCircle,
   Save,
   MessageCircle,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { Link } from "wouter";
 import { toast } from "sonner";
+import { useTheme } from "@/contexts/ThemeContext";
 
 type FilterStatus = "all" | "pending" | "active" | "blocked";
 
 export default function Admin() {
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"users" | "settings">("users");
@@ -197,6 +201,15 @@ export default function Admin() {
               <Settings className="w-3.5 h-3.5 inline mr-1" />
               Config
             </button>
+            {toggleTheme && (
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors ml-1"
+                title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+              >
+                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
+            )}
           </div>
         </div>
       </header>

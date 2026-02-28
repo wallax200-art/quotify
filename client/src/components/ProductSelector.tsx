@@ -1,8 +1,9 @@
 /**
  * ProductSelector — Seletor de produto para compra
  * Suporta filtro por productCategory (iPhones, iPads, etc.), condição (novo/seminovo) e busca
+ * Inclui edição inline de preço: ao clicar no preço, abre um campo para editar
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Product, getProductCategories, formatCurrency } from "@/lib/data";
 import {
   Search,
@@ -16,6 +17,7 @@ import {
   Package,
   ChevronDown,
   ChevronUp,
+  Pencil,
 } from "lucide-react";
 
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -30,14 +32,215 @@ interface ProductSelectorProps {
   products: Product[];
   selectedProduct: Product | null;
   onSelect: (product: Product | null) => void;
+  onUpdatePrice?: (productId: string, newPrice: number) => void;
 }
 
-export default function ProductSelector({ products, selectedProduct, onSelect }: ProductSelectorProps) {
+/**
+ * Inline price editor component
+ */
+function InlinePriceEditor({
+  productId,
+  currentPrice,
+  onSave,
+  onCancel,
+  isSelectedRow,
+}: {
+  productId: string;
+  currentPrice: number;
+  onSave: (productId: string, price: number) => void;
+  onCancel: () => void;
+  isSelectedRow?: boolean;
+}) {
+  const [value, setValue] = useState(currentPrice > 0 ? currentPrice.toFixed(2).replace(".", ",") : "");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const readyRef = useRef(false);
+  const savedRef = useRef(false);
+
+  useEffect(() => {
+    // Focus and select all text on mount with a delay to ensure DOM is stable
+    const timer = setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+        inputRef.current.select();
+      }
+      readyRef.current = true;
+    }, 150);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleSave = () => {
+    // Ignore blur events before the input is ready or if already saved
+    if (!readyRef.current || savedRef.current) return;
+    savedRef.current = true;
+    const cleaned = value.replace(/\./g, "").replace(",", ".");
+    const num = parseFloat(cleaned);
+    if (!isNaN(num) && num >= 0) {
+      onSave(productId, num);
+    } else {
+      onCancel();
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSave();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      onCancel();
+    }
+  };
+
+  return (
+    <div
+      className="flex items-center gap-1 shrink-0 ml-2"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <span className={`text-[10px] font-medium ${isSelectedRow ? "text-primary-foreground/70" : "text-muted-foreground"}`}>R$</span>
+      <input
+        ref={inputRef}
+        type="text"
+        inputMode="decimal"
+        value={value}
+        onChange={(e) => {
+          // Allow only numbers, comma, and dot
+          const v = e.target.value.replace(/[^0-9.,]/g, "");
+          setValue(v);
+        }}
+        onKeyDown={handleKeyDown}
+        onBlur={handleSave}
+        className={`w-20 px-1.5 py-0.5 text-xs font-mono font-semibold rounded border text-right ${
+          isSelectedRow
+            ? "bg-primary-foreground/20 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
+            : "bg-background border-input text-foreground placeholder:text-muted-foreground"
+        } focus:outline-none focus:ring-1 focus:ring-primary/50`}
+        placeholder="0,00"
+      />
+    </div>
+  );
+}
+
+/**
+ * Selected product card with inline price editing
+ * Uses a separate component to isolate state and prevent focus issues
+ */
+function SelectedProductCard({
+  product,
+  onUpdatePrice,
+  onPriceSave,
+}: {
+  product: Product;
+  onUpdatePrice?: (productId: string, newPrice: number) => void;
+  onPriceSave: (productId: string, newPrice: number) => void;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [priceValue, setPriceValue] = useState(
+    product.price > 0 ? product.price.toFixed(2).replace(".", ",") : ""
+  );
+  const inputRef = useRef<HTMLInputElement>(null);
+  const savingRef = useRef(false);
+
+  // Update priceValue when product changes
+  useEffect(() => {
+    if (!isEditing) {
+      setPriceValue(product.price > 0 ? product.price.toFixed(2).replace(".", ",") : "");
+    }
+  }, [product.price, isEditing]);
+
+  const openEditor = () => {
+    if (!onUpdatePrice) return;
+    setIsEditing(true);
+    savingRef.current = false;
+    // Focus will be set by the useEffect below
+  };
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  const handleSave = () => {
+    if (savingRef.current) return;
+    savingRef.current = true;
+    const cleaned = priceValue.replace(/\./g, "").replace(",", ".");
+    const num = parseFloat(cleaned);
+    if (!isNaN(num) && num >= 0) {
+      onPriceSave(product.id, num);
+    }
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSave();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setPriceValue(product.price > 0 ? product.price.toFixed(2).replace(".", ",") : "");
+      setIsEditing(false);
+    }
+  };
+
+  return (
+    <div className="bg-primary/5 border border-primary/20 rounded-xl p-3.5 flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center shadow-sm">
+          <Check className="w-4 h-4 text-primary-foreground" />
+        </div>
+        <div>
+          <p className="font-semibold text-sm text-foreground">{product.name}</p>
+          <p className="text-xs text-muted-foreground">
+            {product.storage !== "-" && product.storage}
+            {product.color && ` \u2022 ${product.color}`}
+            {product.specs && ` \u2022 ${product.specs}`}
+            {" \u2022 "}
+            <span className={product.condition === "novo" ? "text-emerald-600 dark:text-emerald-400" : "text-blue-600 dark:text-blue-400"}>
+              {product.condition === "novo" ? "Lacrado" : "Seminovo"}
+            </span>
+          </p>
+        </div>
+      </div>
+      {isEditing ? (
+        <div className="flex items-center gap-1 shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
+          <span className="text-[10px] font-medium text-muted-foreground">R$</span>
+          <input
+            ref={inputRef}
+            type="text"
+            inputMode="decimal"
+            value={priceValue}
+            onChange={(e) => {
+              const v = e.target.value.replace(/[^0-9.,]/g, "");
+              setPriceValue(v);
+            }}
+            onKeyDown={handleKeyDown}
+            onBlur={handleSave}
+            className="w-24 px-1.5 py-0.5 text-sm font-mono font-semibold rounded border bg-background border-input text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 text-right"
+            placeholder="0,00"
+          />
+        </div>
+      ) : (
+        <button
+          onClick={openEditor}
+          className="group flex items-center gap-1.5 font-mono text-base font-bold text-primary hover:bg-primary/10 px-2 py-1 rounded-lg transition-colors"
+          title="Clique para editar o preço"
+        >
+          {product.price > 0 ? formatCurrency(product.price) : "A definir"}
+          {onUpdatePrice && <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary/60" />}
+        </button>
+      )}
+    </div>
+  );
+}
+
+export default function ProductSelector({ products, selectedProduct, onSelect, onUpdatePrice }: ProductSelectorProps) {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeProductCategory, setActiveProductCategory] = useState<string>("iPhones");
   const [conditionFilter, setConditionFilter] = useState<"all" | "novo" | "seminovo">("all");
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
 
   // Categorias de produto disponíveis
   const productCategories = useMemo(() => {
@@ -107,6 +310,24 @@ export default function ProductSelector({ products, selectedProduct, onSelect }:
     });
   };
 
+  const handlePriceSave = (productId: string, newPrice: number) => {
+    if (onUpdatePrice) {
+      onUpdatePrice(productId, newPrice);
+      // Also update the selected product if it's the one being edited
+      // Only call onSelect if the price actually changed to avoid unnecessary re-renders
+      if (selectedProduct && selectedProduct.id === productId && selectedProduct.price !== newPrice) {
+        onSelect({ ...selectedProduct, price: newPrice });
+      }
+    }
+    setEditingProductId(null);
+  };
+
+  const handlePriceClick = (e: React.MouseEvent, productId: string) => {
+    if (!onUpdatePrice) return;
+    e.stopPropagation();
+    setEditingProductId(productId);
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -129,28 +350,11 @@ export default function ProductSelector({ products, selectedProduct, onSelect }:
 
       {/* Produto selecionado */}
       {selectedProduct && (
-        <div className="bg-primary/5 border border-primary/20 rounded-xl p-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center shadow-sm">
-              <Check className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <div>
-              <p className="font-semibold text-sm text-foreground">{selectedProduct.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {selectedProduct.storage !== "-" && selectedProduct.storage}
-                {selectedProduct.color && ` • ${selectedProduct.color}`}
-                {selectedProduct.specs && ` • ${selectedProduct.specs}`}
-                {" • "}
-                <span className={selectedProduct.condition === "novo" ? "text-emerald-600" : "text-blue-600"}>
-                  {selectedProduct.condition === "novo" ? "Lacrado" : "Seminovo"}
-                </span>
-              </p>
-            </div>
-          </div>
-          <span className="font-mono text-base font-bold text-primary">
-            {selectedProduct.price > 0 ? formatCurrency(selectedProduct.price) : "A definir"}
-          </span>
-        </div>
+        <SelectedProductCard
+          product={selectedProduct}
+          onUpdatePrice={onUpdatePrice}
+          onPriceSave={handlePriceSave}
+        />
       )}
 
       {/* Filtro por categoria de produto (iPhones, iPads, etc.) */}
@@ -167,6 +371,7 @@ export default function ProductSelector({ products, selectedProduct, onSelect }:
                 setActiveCategory(null);
                 setConditionFilter("all");
                 setCollapsedCategories(new Set());
+                setEditingProductId(null);
               }}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all shrink-0 ${
                 isActive
@@ -269,15 +474,20 @@ export default function ProductSelector({ products, selectedProduct, onSelect }:
               <div className="divide-y divide-border">
                 {items.map((product) => {
                   const isSelected = selectedProduct?.id === product.id;
+                  const isEditing = editingProductId === product.id;
                   return (
-                    <button
+                    <div
                       key={product.id}
-                      onClick={() => onSelect(isSelected ? null : product)}
-                      className={`w-full flex items-center justify-between px-3 py-2.5 text-left transition-all active:scale-[0.99] ${
+                      className={`w-full flex items-center justify-between px-3 py-2.5 text-left transition-all ${
                         isSelected
                           ? "bg-primary text-primary-foreground"
                           : "hover:bg-accent"
-                      }`}
+                      } ${isEditing ? "" : "cursor-pointer active:scale-[0.99]"}`}
+                      onClick={() => {
+                        if (!isEditing) {
+                          onSelect(isSelected ? null : product);
+                        }
+                      }}
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         {product.storage !== "-" && (
@@ -304,7 +514,7 @@ export default function ProductSelector({ products, selectedProduct, onSelect }:
                             className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${
                               isSelected
                                 ? "bg-primary-foreground/20 text-primary-foreground"
-                                : "bg-emerald-100 text-emerald-700"
+                                : "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400"
                             }`}
                           >
                             LACRADO
@@ -315,25 +525,44 @@ export default function ProductSelector({ products, selectedProduct, onSelect }:
                             className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${
                               isSelected
                                 ? "bg-primary-foreground/20 text-primary-foreground"
-                                : "bg-blue-100 text-blue-700"
+                                : "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400"
                             }`}
                           >
                             SEMI
                           </span>
                         )}
                       </div>
-                      <span
-                        className={`font-mono text-xs font-semibold shrink-0 ml-2 ${
-                          isSelected
-                            ? "text-primary-foreground"
-                            : product.price > 0
-                            ? "text-foreground"
-                            : "text-amber-500"
-                        }`}
-                      >
-                        {product.price > 0 ? formatCurrency(product.price) : "A definir"}
-                      </span>
-                    </button>
+                      {isEditing ? (
+                        <InlinePriceEditor
+                          productId={product.id}
+                          currentPrice={product.price}
+                          onSave={handlePriceSave}
+                          onCancel={() => setEditingProductId(null)}
+                          isSelectedRow={isSelected}
+                        />
+                      ) : (
+                        <span
+                          onClick={(e) => handlePriceClick(e, product.id)}
+                          className={`group font-mono text-xs font-semibold shrink-0 ml-2 inline-flex items-center gap-1 ${
+                            onUpdatePrice ? "cursor-pointer hover:underline" : ""
+                          } ${
+                            isSelected
+                              ? "text-primary-foreground"
+                              : product.price > 0
+                              ? "text-foreground"
+                              : "text-amber-500"
+                          }`}
+                          title={onUpdatePrice ? "Clique para editar o preço" : undefined}
+                        >
+                          {product.price > 0 ? formatCurrency(product.price) : "A definir"}
+                          {onUpdatePrice && (
+                            <Pencil className={`w-2.5 h-2.5 opacity-0 group-hover:opacity-70 transition-opacity ${
+                              isSelected ? "text-primary-foreground/60" : "text-muted-foreground"
+                            }`} />
+                          )}
+                        </span>
+                      )}
+                    </div>
                   );
                 })}
               </div>

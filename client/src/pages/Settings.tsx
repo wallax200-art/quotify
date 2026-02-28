@@ -25,8 +25,11 @@ import {
   Search,
   ChevronDown,
   ChevronUp,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTheme } from "@/contexts/ThemeContext";
 
 type SettingsTab = "produtos" | "upgrade" | "abatimentos" | "taxas" | "categorias" | "texto";
 
@@ -290,6 +293,7 @@ function RateForm({
 // ==================== MAIN SETTINGS PAGE ====================
 export default function Settings() {
   const config = useConfig();
+  const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<SettingsTab>("produtos");
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -378,6 +382,15 @@ export default function Settings() {
               <p className="text-[10px] text-muted-foreground leading-tight">Quotify</p>
             </div>
           </div>
+          {toggleTheme && (
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+            >
+              {theme === 'dark' ? <Sun className="w-4.5 h-4.5" /> : <Moon className="w-4.5 h-4.5" />}
+            </button>
+          )}
         </div>
       </header>
 

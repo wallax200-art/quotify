@@ -27,7 +27,10 @@ import {
   Shield,
   LogOut,
   Loader2,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 type TabId = "produto" | "upgrade" | "condicao" | "parcelas";
 
@@ -42,6 +45,7 @@ export default function Home() {
   const { user, loading, isAuthenticated, logout } = useAuth();
   const [, setLocation] = useLocation();
   const config = useConfig();
+  const { theme, toggleTheme } = useTheme();
 
   const {
     state,
@@ -131,6 +135,17 @@ export default function Home() {
               </Link>
             )}
 
+            {/* Theme toggle */}
+            {toggleTheme && (
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+              >
+                {theme === 'dark' ? <Sun className="w-4.5 h-4.5" /> : <Moon className="w-4.5 h-4.5" />}
+              </button>
+            )}
+
             {/* Configurações */}
             <Link href="/configuracoes" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors" title="Configurações">
               <Settings className="w-4.5 h-4.5" />
@@ -204,6 +219,13 @@ export default function Home() {
                   products={config.products}
                   selectedProduct={state.selectedProduct}
                   onSelect={selectProduct}
+                  onUpdatePrice={(productId, newPrice) => {
+                    config.updateProduct(productId, { price: newPrice });
+                    // Also update the selected product in the orcamento state if it matches
+                    if (state.selectedProduct && state.selectedProduct.id === productId) {
+                      selectProduct({ ...state.selectedProduct, price: newPrice });
+                    }
+                  }}
                 />
               )}
               {activeTab === "upgrade" && (

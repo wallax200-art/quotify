@@ -21,9 +21,12 @@ import {
   Eye,
   EyeOff,
   ArrowLeft,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const STEPS = [
   {
@@ -60,6 +63,7 @@ export default function Landing() {
   const { user, loading, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const { data: publicSettings } = trpc.settings.getPublic.useQuery();
+  const { theme, toggleTheme } = useTheme();
 
   const [view, setView] = useState<ViewMode>("landing");
   const [showPassword, setShowPassword] = useState(false);
@@ -186,14 +190,25 @@ export default function Landing() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
         <div className="w-full max-w-md">
-          {/* Back button */}
-          <button
-            onClick={() => setView("landing")}
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Voltar
-          </button>
+          {/* Back button + Theme toggle */}
+          <div className="flex items-center justify-between mb-8">
+            <button
+              onClick={() => setView("landing")}
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Voltar
+            </button>
+            {toggleTheme && (
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+              >
+                {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
+            )}
+          </div>
 
           {/* Logo */}
           <div className="flex items-center gap-3 mb-8">
@@ -208,12 +223,12 @@ export default function Landing() {
 
           {/* Status messages for authenticated users */}
           {isAuthenticated && userStatus === "pending" && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 text-center mb-6">
-              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-3">
-                <Clock className="w-6 h-6 text-amber-600" />
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-5 text-center mb-6">
+              <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center mx-auto mb-3">
+                <Clock className="w-6 h-6 text-amber-600 dark:text-amber-400" />
               </div>
-              <h3 className="font-semibold text-amber-900 mb-1">Conta em análise</h3>
-              <p className="text-sm text-amber-700 mb-4">
+              <h3 className="font-semibold text-amber-900 dark:text-amber-200 mb-1">Conta em análise</h3>
+              <p className="text-sm text-amber-700 dark:text-amber-400 mb-4">
                 Sua conta está em análise. Entre em contato para liberação.
               </p>
               <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
@@ -226,12 +241,12 @@ export default function Landing() {
           )}
 
           {isAuthenticated && userStatus === "blocked" && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-5 text-center mb-6">
-              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
-                <Shield className="w-6 h-6 text-red-600" />
+            <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl p-5 text-center mb-6">
+              <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center mx-auto mb-3">
+                <Shield className="w-6 h-6 text-red-600 dark:text-red-400" />
               </div>
-              <h3 className="font-semibold text-red-900 mb-1">Conta bloqueada</h3>
-              <p className="text-sm text-red-700 mb-4">
+              <h3 className="font-semibold text-red-900 dark:text-red-200 mb-1">Conta bloqueada</h3>
+              <p className="text-sm text-red-700 dark:text-red-400 mb-4">
                 Conta bloqueada. Fale com o suporte.
               </p>
               <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
@@ -280,7 +295,7 @@ export default function Landing() {
               </div>
 
               {loginError && (
-                <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
+                <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm rounded-lg px-4 py-3">
                   {loginError}
                 </div>
               )}
@@ -365,14 +380,25 @@ export default function Landing() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4 py-8">
         <div className="w-full max-w-md">
-          {/* Back button */}
-          <button
-            onClick={() => setView("landing")}
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Voltar
-          </button>
+          {/* Back button + Theme toggle */}
+          <div className="flex items-center justify-between mb-6">
+            <button
+              onClick={() => setView("landing")}
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Voltar
+            </button>
+            {toggleTheme && (
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+              >
+                {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
+            )}
+          </div>
 
           {/* Logo */}
           <div className="flex items-center gap-3 mb-6">
@@ -478,7 +504,7 @@ export default function Landing() {
             </div>
 
             {regError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
+              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm rounded-lg px-4 py-3">
                 {regError}
               </div>
             )}
@@ -530,13 +556,22 @@ export default function Landing() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-emerald-500/5" />
 
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 pt-12 sm:pt-20 pb-16">
-          {/* Logo */}
+          {/* Logo + Theme toggle */}
           <div className="flex justify-center mb-10">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
                 <Calculator className="w-6 h-6 text-primary-foreground" />
               </div>
               <span className="text-2xl font-bold tracking-tight text-foreground">Quotify</span>
+              {toggleTheme && (
+                <button
+                  onClick={toggleTheme}
+                  className="ml-2 p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                  title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+                >
+                  {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                </button>
+              )}
             </div>
           </div>
 
