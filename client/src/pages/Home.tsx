@@ -5,12 +5,14 @@
  */
 import { useState } from "react";
 import { useOrcamento } from "@/hooks/useOrcamento";
+import { useConfig } from "@/contexts/ConfigContext";
 import ProductSelector from "@/components/ProductSelector";
 import UpgradeSelector from "@/components/UpgradeSelector";
 import ConditionDeductions from "@/components/ConditionDeductions";
 import InstallmentRates from "@/components/InstallmentRates";
 import OrcamentoSummary from "@/components/OrcamentoSummary";
 import { formatCurrency } from "@/lib/data";
+import { Link } from "wouter";
 import {
   Smartphone,
   ArrowLeftRight,
@@ -20,6 +22,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  Settings,
 } from "lucide-react";
 
 type TabId = "produto" | "upgrade" | "condicao" | "parcelas";
@@ -32,6 +35,8 @@ const TABS: { id: TabId; label: string; shortLabel: string; icon: React.Componen
 ];
 
 export default function Home() {
+  const config = useConfig();
+
   const {
     state,
     calculations,
@@ -43,10 +48,8 @@ export default function Home() {
     removeCustomDeduction,
     updateCustomDeduction,
     setInstallments,
-    updateRate,
-    resetRates,
     resetAll,
-  } = useOrcamento();
+  } = useOrcamento(config.conditionDeductions, config.installmentRates);
 
   const [activeTab, setActiveTab] = useState<TabId>("produto");
   const [showSummary, setShowSummary] = useState(false);
@@ -88,19 +91,26 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Botão resumo mobile */}
-          <button
-            onClick={() => setShowSummary(!showSummary)}
-            className="lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold shadow-sm active:scale-95 transition-transform"
-          >
-            {showSummary ? <X className="w-3.5 h-3.5" /> : <Menu className="w-3.5 h-3.5" />}
-            {showSummary ? "Fechar" : "Resumo"}
-            {hasSelection && !showSummary && (
-              <span className="ml-1 px-1.5 py-0.5 rounded bg-white/20 text-[10px]">
-                {formatCurrency(calculations.amountToPay)}
-              </span>
-            )}
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Botão configurações */}
+            <Link href="/configuracoes" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors" title="Configurações">
+              <Settings className="w-4.5 h-4.5" />
+            </Link>
+
+            {/* Botão resumo mobile */}
+            <button
+              onClick={() => setShowSummary(!showSummary)}
+              className="lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold shadow-sm active:scale-95 transition-transform"
+            >
+              {showSummary ? <X className="w-3.5 h-3.5" /> : <Menu className="w-3.5 h-3.5" />}
+              {showSummary ? "Fechar" : "Resumo"}
+              {hasSelection && !showSummary && (
+                <span className="ml-1 px-1.5 py-0.5 rounded bg-white/20 text-[10px]">
+                  {formatCurrency(calculations.amountToPay)}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -128,9 +138,8 @@ export default function Home() {
                     <Icon className="w-3.5 h-3.5 shrink-0" />
                     <span className="hidden sm:inline">{tab.label}</span>
                     <span className="sm:hidden">{tab.shortLabel}</span>
-                    {/* Indicador de status */}
                     {status.done && !isActive && (
-                      <span className="absolute -top-1 -right-0.5 w-2 h-2 rounded-full bg-emerald ring-2 ring-secondary" />
+                      <span className="absolute -top-1 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-secondary" />
                     )}
                   </button>
                 );
@@ -141,18 +150,21 @@ export default function Home() {
             <div className="bg-card rounded-xl border border-border p-4 sm:p-5 shadow-sm">
               {activeTab === "produto" && (
                 <ProductSelector
+                  products={config.products}
                   selectedProduct={state.selectedProduct}
                   onSelect={selectProduct}
                 />
               )}
               {activeTab === "upgrade" && (
                 <UpgradeSelector
+                  upgradeProducts={config.upgradeProducts}
                   selectedUpgrade={state.selectedUpgrade}
                   onSelect={selectUpgrade}
                 />
               )}
               {activeTab === "condicao" && (
                 <ConditionDeductions
+                  conditionDeductions={config.conditionDeductions}
                   activeDeductions={state.activeDeductions}
                   customDeductions={state.customDeductions}
                   onToggle={toggleDeduction}
@@ -167,11 +179,9 @@ export default function Home() {
               )}
               {activeTab === "parcelas" && (
                 <InstallmentRates
-                  rates={state.installmentRates}
+                  rates={config.installmentRates}
                   selectedInstallments={state.selectedInstallments}
                   onSelectInstallments={setInstallments}
-                  onUpdateRate={updateRate}
-                  onResetRates={resetRates}
                   amountToPay={calculations.amountToPay}
                 />
               )}
@@ -216,6 +226,8 @@ export default function Home() {
                   selectedUpgrade={state.selectedUpgrade}
                   calculations={calculations}
                   selectedInstallments={state.selectedInstallments}
+                  installmentRates={config.installmentRates}
+                  closingText={config.closingText}
                   onReset={resetAll}
                 />
               </div>
@@ -238,6 +250,8 @@ export default function Home() {
               selectedUpgrade={state.selectedUpgrade}
               calculations={calculations}
               selectedInstallments={state.selectedInstallments}
+              installmentRates={config.installmentRates}
+              closingText={config.closingText}
               onReset={resetAll}
             />
           </div>
@@ -250,7 +264,7 @@ export default function Home() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">À Vista PIX</p>
-              <p className="money-value text-lg text-foreground">
+              <p className="font-mono text-lg font-bold text-foreground">
                 {formatCurrency(calculations.amountToPay)}
               </p>
             </div>

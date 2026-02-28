@@ -1,23 +1,27 @@
 /**
  * ProductSelector — Seletor de produto para compra
- * Design: Tech Workspace — cards com hover, badges de storage, busca
+ * Suporta filtro por condição (novo/seminovo) e categorias dinâmicas
  */
 import { useState, useMemo } from "react";
-import { Product, PRODUCTS, getProductCategories, formatCurrency } from "@/lib/data";
-import { Search, Smartphone, Check, X } from "lucide-react";
+import { Product, getProductCategories, formatCurrency } from "@/lib/data";
+import { Search, Smartphone, Check, X, Package } from "lucide-react";
 
 interface ProductSelectorProps {
+  products: Product[];
   selectedProduct: Product | null;
   onSelect: (product: Product | null) => void;
 }
 
-export default function ProductSelector({ selectedProduct, onSelect }: ProductSelectorProps) {
+export default function ProductSelector({ products, selectedProduct, onSelect }: ProductSelectorProps) {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const categories = useMemo(() => getProductCategories(PRODUCTS), []);
+  const [conditionFilter, setConditionFilter] = useState<"all" | "novo" | "seminovo">("all");
 
   const filtered = useMemo(() => {
-    let list = PRODUCTS;
+    let list = products || [];
+    if (conditionFilter !== "all") {
+      list = list.filter((p) => p.condition === conditionFilter);
+    }
     if (activeCategory) {
       list = list.filter((p) => p.category === activeCategory);
     }
@@ -26,19 +30,28 @@ export default function ProductSelector({ selectedProduct, onSelect }: ProductSe
       list = list.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
-          p.storage.toLowerCase().includes(q)
+          p.storage.toLowerCase().includes(q) ||
+          (p.color && p.color.toLowerCase().includes(q))
       );
     }
-    return list;
-  }, [search, activeCategory]);
+    // Filtrar produtos com preço definido primeiro, depois os sem preço
+    return list.sort((a, b) => {
+      if (a.price > 0 && b.price === 0) return -1;
+      if (a.price === 0 && b.price > 0) return 1;
+      return 0;
+    });
+  }, [products, search, activeCategory, conditionFilter]);
+
+  const categories = useMemo(() => getProductCategories(filtered), [filtered]);
 
   // Agrupar por categoria
   const grouped = useMemo(() => {
     const map = new Map<string, Product[]>();
     for (const p of filtered) {
-      const arr = map.get(p.category) || [];
+      const key = p.category;
+      const arr = map.get(key) || [];
       arr.push(p);
-      map.set(p.category, arr);
+      map.set(key, arr);
     }
     return map;
   }, [filtered]);
@@ -72,14 +85,38 @@ export default function ProductSelector({ selectedProduct, onSelect }: ProductSe
             </div>
             <div>
               <p className="font-semibold text-sm text-foreground">{selectedProduct.name}</p>
-              <p className="text-xs text-muted-foreground">{selectedProduct.storage}</p>
+              <p className="text-xs text-muted-foreground">
+                {selectedProduct.storage}
+                {selectedProduct.color && ` • ${selectedProduct.color}`}
+                {" • "}
+                <span className={selectedProduct.condition === "novo" ? "text-emerald-600" : "text-blue-600"}>
+                  {selectedProduct.condition === "novo" ? "Lacrado" : "Seminovo"}
+                </span>
+              </p>
             </div>
           </div>
-          <span className="money-value text-primary text-base">
-            {formatCurrency(selectedProduct.price)}
+          <span className="font-mono text-base font-bold text-primary">
+            {selectedProduct.price > 0 ? formatCurrency(selectedProduct.price) : "A definir"}
           </span>
         </div>
       )}
+
+      {/* Filtro de condição */}
+      <div className="flex gap-1 p-0.5 bg-secondary rounded-lg w-fit">
+        {(["all", "seminovo", "novo"] as const).map((f) => (
+          <button
+            key={f}
+            onClick={() => { setConditionFilter(f); setActiveCategory(null); }}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+              conditionFilter === f
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {f === "all" ? "Todos" : f === "novo" ? "Lacrados" : "Seminovos"}
+          </button>
+        ))}
+      </div>
 
       {/* Busca */}
       <div className="relative">
@@ -93,7 +130,7 @@ export default function ProductSelector({ selectedProduct, onSelect }: ProductSe
         />
       </div>
 
-      {/* Filtros de categoria */}
+      {/* Filtros de modelo */}
       <div className="flex flex-wrap gap-1.5">
         <button
           onClick={() => setActiveCategory(null)}
@@ -115,20 +152,20 @@ export default function ProductSelector({ selectedProduct, onSelect }: ProductSe
                 : "bg-secondary text-secondary-foreground hover:bg-accent"
             }`}
           >
-            {cat}
+            {cat.replace("iPhone ", "")}
           </button>
         ))}
       </div>
 
       {/* Lista de produtos */}
       <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1 scrollbar-thin">
-        {Array.from(grouped.entries()).map(([category, products]) => (
+        {Array.from(grouped.entries()).map(([category, items]) => (
           <div key={category}>
             <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">
               {category}
             </h3>
             <div className="grid gap-1.5">
-              {products.map((product) => {
+              {items.map((product) => {
                 const isSelected = selectedProduct?.id === product.id;
                 return (
                   <button
@@ -140,7 +177,7 @@ export default function ProductSelector({ selectedProduct, onSelect }: ProductSe
                         : "bg-card hover:bg-accent border border-border hover:border-primary/30 hover:shadow-sm"
                     }`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
                           isSelected
@@ -151,9 +188,18 @@ export default function ProductSelector({ selectedProduct, onSelect }: ProductSe
                         {product.storage}
                       </span>
                       <span className="text-sm font-medium">{product.name}</span>
+                      {product.condition === "novo" && (
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
+                          isSelected ? "bg-primary-foreground/20 text-primary-foreground" : "bg-emerald-100 text-emerald-700"
+                        }`}>
+                          LACRADO
+                        </span>
+                      )}
                     </div>
-                    <span className={`money-value text-sm ${isSelected ? "text-primary-foreground" : "text-foreground"}`}>
-                      {formatCurrency(product.price)}
+                    <span className={`font-mono text-sm font-semibold ${
+                      isSelected ? "text-primary-foreground" : product.price > 0 ? "text-foreground" : "text-amber-500"
+                    }`}>
+                      {product.price > 0 ? formatCurrency(product.price) : "A definir"}
                     </span>
                   </button>
                 );
@@ -162,8 +208,9 @@ export default function ProductSelector({ selectedProduct, onSelect }: ProductSe
           </div>
         ))}
         {filtered.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground text-sm">
-            Nenhum produto encontrado
+          <div className="text-center py-8">
+            <Package className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+            <p className="text-muted-foreground text-sm">Nenhum produto encontrado</p>
           </div>
         )}
       </div>

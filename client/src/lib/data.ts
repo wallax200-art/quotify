@@ -4,54 +4,27 @@
 // Taxas FIXAS: 8x=9,630% | 10x=10,760% | 12x=11,880% | 18x=17,000%
 // ============================================================
 
-// --- PRODUTOS À VENDA (iPhones novos) ---
+// --- TIPOS ---
+
+export type ProductCondition = "novo" | "seminovo";
+
+export interface ProductCategory {
+  id: string;
+  name: string; // ex: "iPhones"
+  icon: string; // lucide icon name
+}
+
 export interface Product {
   id: string;
   name: string;
   storage: string;
+  color?: string;
   price: number;
-  category: string;
+  condition: ProductCondition;
+  category: string; // nome do modelo (ex: "iPhone 16 Pro Max")
+  productCategory: string; // categoria pai (ex: "iPhones")
 }
 
-export const PRODUCTS: Product[] = [
-  // iPhone 16 Pro Max
-  { id: "16pm-256", name: "iPhone 16 Pro Max", storage: "256GB", price: 9499, category: "iPhone 16 Pro Max" },
-  { id: "16pm-512", name: "iPhone 16 Pro Max", storage: "512GB", price: 10499, category: "iPhone 16 Pro Max" },
-  { id: "16pm-1tb", name: "iPhone 16 Pro Max", storage: "1TB", price: 12499, category: "iPhone 16 Pro Max" },
-  // iPhone 16 Pro
-  { id: "16p-128", name: "iPhone 16 Pro", storage: "128GB", price: 7999, category: "iPhone 16 Pro" },
-  { id: "16p-256", name: "iPhone 16 Pro", storage: "256GB", price: 8799, category: "iPhone 16 Pro" },
-  { id: "16p-512", name: "iPhone 16 Pro", storage: "512GB", price: 9999, category: "iPhone 16 Pro" },
-  { id: "16p-1tb", name: "iPhone 16 Pro", storage: "1TB", price: 11499, category: "iPhone 16 Pro" },
-  // iPhone 16
-  { id: "16-128", name: "iPhone 16", storage: "128GB", price: 5999, category: "iPhone 16" },
-  { id: "16-256", name: "iPhone 16", storage: "256GB", price: 6799, category: "iPhone 16" },
-  { id: "16-512", name: "iPhone 16", storage: "512GB", price: 7999, category: "iPhone 16" },
-  // iPhone 16 Plus
-  { id: "16pl-128", name: "iPhone 16 Plus", storage: "128GB", price: 6999, category: "iPhone 16 Plus" },
-  { id: "16pl-256", name: "iPhone 16 Plus", storage: "256GB", price: 7799, category: "iPhone 16 Plus" },
-  { id: "16pl-512", name: "iPhone 16 Plus", storage: "512GB", price: 8999, category: "iPhone 16 Plus" },
-  // iPhone 15 Pro Max
-  { id: "15pm-256", name: "iPhone 15 Pro Max", storage: "256GB", price: 7999, category: "iPhone 15 Pro Max" },
-  { id: "15pm-512", name: "iPhone 15 Pro Max", storage: "512GB", price: 8999, category: "iPhone 15 Pro Max" },
-  { id: "15pm-1tb", name: "iPhone 15 Pro Max", storage: "1TB", price: 10499, category: "iPhone 15 Pro Max" },
-  // iPhone 15 Pro
-  { id: "15p-128", name: "iPhone 15 Pro", storage: "128GB", price: 6499, category: "iPhone 15 Pro" },
-  { id: "15p-256", name: "iPhone 15 Pro", storage: "256GB", price: 7299, category: "iPhone 15 Pro" },
-  { id: "15p-512", name: "iPhone 15 Pro", storage: "512GB", price: 8499, category: "iPhone 15 Pro" },
-  // iPhone 15
-  { id: "15-128", name: "iPhone 15", storage: "128GB", price: 4999, category: "iPhone 15" },
-  { id: "15-256", name: "iPhone 15", storage: "256GB", price: 5799, category: "iPhone 15" },
-  // iPhone 14
-  { id: "14-128", name: "iPhone 14", storage: "128GB", price: 3999, category: "iPhone 14" },
-  { id: "14-256", name: "iPhone 14", storage: "256GB", price: 4599, category: "iPhone 14" },
-  // iPhone 13
-  { id: "13-128", name: "iPhone 13", storage: "128GB", price: 3299, category: "iPhone 13" },
-  { id: "13-256", name: "iPhone 13", storage: "256GB", price: 3799, category: "iPhone 13" },
-];
-
-// --- PRODUTOS DE UPGRADE (aparelhos usados do cliente para abater) ---
-// LISTA OFICIAL DE AVALIAÇÃO — TIO SAM IMPORTS
 export interface UpgradeProduct {
   id: string;
   name: string;
@@ -60,7 +33,169 @@ export interface UpgradeProduct {
   category: string;
 }
 
-export const UPGRADE_PRODUCTS: UpgradeProduct[] = [
+export interface ConditionDeduction {
+  id: string;
+  label: string;
+  description: string;
+  defaultValue: number;
+  icon: string;
+  category: "estado" | "bateria" | "funcionalidade" | "garantia";
+}
+
+export interface InstallmentRate {
+  installments: number;
+  rate: number;
+  label: string;
+}
+
+// --- CATEGORIAS DE PRODUTO ---
+export const DEFAULT_PRODUCT_CATEGORIES: ProductCategory[] = [
+  { id: "iphones", name: "iPhones", icon: "smartphone" },
+];
+
+// --- CORES DISPONÍVEIS POR MODELO ---
+export const IPHONE_COLORS: Record<string, string[]> = {
+  // iPhone XR
+  "iPhone XR": ["Preto", "Branco", "Azul", "Amarelo", "Coral", "Vermelho"],
+  // iPhone 11
+  "iPhone 11": ["Preto", "Branco", "Verde", "Amarelo", "Roxo", "Vermelho"],
+  "iPhone 11 Pro": ["Cinza Espacial", "Prateado", "Dourado", "Verde Meia-Noite"],
+  "iPhone 11 Pro Max": ["Cinza Espacial", "Prateado", "Dourado", "Verde Meia-Noite"],
+  // iPhone 12
+  "iPhone 12 mini": ["Preto", "Branco", "Azul", "Verde", "Roxo", "Vermelho"],
+  "iPhone 12": ["Preto", "Branco", "Azul", "Verde", "Roxo", "Vermelho"],
+  "iPhone 12 Pro": ["Grafite", "Prateado", "Dourado", "Azul Pacífico"],
+  "iPhone 12 Pro Max": ["Grafite", "Prateado", "Dourado", "Azul Pacífico"],
+  // iPhone 13
+  "iPhone 13 mini": ["Meia-Noite", "Estelar", "Azul", "Rosa", "Verde", "Vermelho"],
+  "iPhone 13": ["Meia-Noite", "Estelar", "Azul", "Rosa", "Verde", "Vermelho"],
+  "iPhone 13 Pro": ["Grafite", "Prateado", "Dourado", "Azul Sierra", "Verde Alpino"],
+  "iPhone 13 Pro Max": ["Grafite", "Prateado", "Dourado", "Azul Sierra", "Verde Alpino"],
+  // iPhone 14
+  "iPhone 14": ["Meia-Noite", "Estelar", "Azul", "Roxo", "Vermelho", "Amarelo"],
+  "iPhone 14 Plus": ["Meia-Noite", "Estelar", "Azul", "Roxo", "Vermelho", "Amarelo"],
+  "iPhone 14 Pro": ["Preto Espacial", "Prateado", "Dourado", "Roxo Profundo"],
+  "iPhone 14 Pro Max": ["Preto Espacial", "Prateado", "Dourado", "Roxo Profundo"],
+  // iPhone 15
+  "iPhone 15": ["Preto", "Azul", "Verde", "Amarelo", "Rosa"],
+  "iPhone 15 Plus": ["Preto", "Azul", "Verde", "Amarelo", "Rosa"],
+  "iPhone 15 Pro": ["Titânio Natural", "Titânio Azul", "Titânio Branco", "Titânio Preto"],
+  "iPhone 15 Pro Max": ["Titânio Natural", "Titânio Azul", "Titânio Branco", "Titânio Preto"],
+  // iPhone 16
+  "iPhone 16": ["Preto", "Branco", "Azul Ultramarino", "Verde-Azulado", "Rosa"],
+  "iPhone 16 Plus": ["Preto", "Branco", "Azul Ultramarino", "Verde-Azulado", "Rosa"],
+  "iPhone 16 Pro": ["Titânio Natural", "Titânio Preto", "Titânio Branco", "Titânio Deserto"],
+  "iPhone 16 Pro Max": ["Titânio Natural", "Titânio Preto", "Titânio Branco", "Titânio Deserto"],
+  // iPhone 17
+  "iPhone 17": ["Preto", "Branco", "Verde", "Rosa"],
+  "iPhone 17 Air": ["Preto", "Estelar", "Verde"],
+  "iPhone 17 Pro": ["Titânio Natural", "Titânio Preto", "Titânio Branco", "Titânio Verde"],
+  "iPhone 17 Pro Max": ["Titânio Natural", "Titânio Preto", "Titânio Branco", "Titânio Verde"],
+};
+
+// --- ARMAZENAMENTOS POR MODELO ---
+const STORAGE_MAP: Record<string, string[]> = {
+  "iPhone XR": ["64GB", "128GB", "256GB"],
+  "iPhone 11": ["64GB", "128GB", "256GB"],
+  "iPhone 11 Pro": ["64GB", "256GB", "512GB"],
+  "iPhone 11 Pro Max": ["64GB", "256GB", "512GB"],
+  "iPhone 12 mini": ["64GB", "128GB", "256GB"],
+  "iPhone 12": ["64GB", "128GB", "256GB"],
+  "iPhone 12 Pro": ["128GB", "256GB", "512GB"],
+  "iPhone 12 Pro Max": ["128GB", "256GB", "512GB"],
+  "iPhone 13 mini": ["128GB", "256GB", "512GB"],
+  "iPhone 13": ["128GB", "256GB", "512GB"],
+  "iPhone 13 Pro": ["128GB", "256GB", "512GB", "1TB"],
+  "iPhone 13 Pro Max": ["128GB", "256GB", "512GB", "1TB"],
+  "iPhone 14": ["128GB", "256GB"],
+  "iPhone 14 Plus": ["128GB", "256GB"],
+  "iPhone 14 Pro": ["128GB", "256GB", "512GB", "1TB"],
+  "iPhone 14 Pro Max": ["128GB", "256GB", "512GB", "1TB"],
+  "iPhone 15": ["128GB", "256GB", "512GB"],
+  "iPhone 15 Plus": ["128GB", "256GB", "512GB"],
+  "iPhone 15 Pro": ["128GB", "256GB", "512GB", "1TB"],
+  "iPhone 15 Pro Max": ["256GB", "512GB", "1TB"],
+  "iPhone 16": ["128GB", "256GB", "512GB"],
+  "iPhone 16 Plus": ["128GB", "256GB", "512GB"],
+  "iPhone 16 Pro": ["128GB", "256GB", "512GB", "1TB"],
+  "iPhone 16 Pro Max": ["256GB", "512GB", "1TB"],
+  "iPhone 17": ["256GB", "512GB"],
+  "iPhone 17 Air": ["256GB", "512GB"],
+  "iPhone 17 Pro": ["256GB", "512GB", "1TB"],
+  "iPhone 17 Pro Max": ["256GB", "512GB", "1TB"],
+};
+
+// Modelos seminovos: XR até 17 Pro Max (todos)
+const SEMINOVO_MODELS = [
+  "iPhone XR",
+  "iPhone 11", "iPhone 11 Pro", "iPhone 11 Pro Max",
+  "iPhone 12 mini", "iPhone 12", "iPhone 12 Pro", "iPhone 12 Pro Max",
+  "iPhone 13 mini", "iPhone 13", "iPhone 13 Pro", "iPhone 13 Pro Max",
+  "iPhone 14", "iPhone 14 Plus", "iPhone 14 Pro", "iPhone 14 Pro Max",
+  "iPhone 15", "iPhone 15 Plus", "iPhone 15 Pro", "iPhone 15 Pro Max",
+  "iPhone 16", "iPhone 16 Plus", "iPhone 16 Pro", "iPhone 16 Pro Max",
+  "iPhone 17", "iPhone 17 Air", "iPhone 17 Pro", "iPhone 17 Pro Max",
+];
+
+// Modelos lacrados (novos): apenas os que existem lacrado
+const LACRADO_MODELS = [
+  "iPhone 13",       // base
+  "iPhone 16",       // base/entrada
+  "iPhone 17",       // toda a linha 17
+  "iPhone 17 Air",
+  "iPhone 17 Pro",
+  "iPhone 17 Pro Max",
+];
+
+function generateId(condition: string, model: string, storage: string): string {
+  const slug = model.toLowerCase().replace(/\s+/g, "-").replace("iphone-", "");
+  const storSlug = storage.toLowerCase().replace("gb", "").replace("tb", "tb");
+  return `${condition}-${slug}-${storSlug}`;
+}
+
+function generateSaleProducts(): Product[] {
+  const products: Product[] = [];
+
+  // Seminovos — todos os modelos
+  for (const model of SEMINOVO_MODELS) {
+    const storages = STORAGE_MAP[model] || [];
+    for (const storage of storages) {
+      products.push({
+        id: generateId("semi", model, storage),
+        name: model,
+        storage,
+        price: 0, // preço a definir pelo dono
+        condition: "seminovo",
+        category: model,
+        productCategory: "iPhones",
+      });
+    }
+  }
+
+  // Lacrados — apenas modelos disponíveis
+  for (const model of LACRADO_MODELS) {
+    const storages = STORAGE_MAP[model] || [];
+    for (const storage of storages) {
+      products.push({
+        id: generateId("novo", model, storage),
+        name: model,
+        storage,
+        price: 0, // preço a definir pelo dono
+        condition: "novo",
+        category: model,
+        productCategory: "iPhones",
+      });
+    }
+  }
+
+  return products;
+}
+
+// --- PRODUTOS À VENDA (gerados automaticamente) ---
+export const DEFAULT_PRODUCTS: Product[] = generateSaleProducts();
+
+// --- PRODUTOS DE UPGRADE (aparelhos usados do cliente para abater) ---
+export const DEFAULT_UPGRADE_PRODUCTS: UpgradeProduct[] = [
   // iPhone XR
   { id: "up-xr-64", name: "iPhone XR", storage: "64GB", tradeInValue: 400, category: "iPhone XR" },
   { id: "up-xr-128", name: "iPhone XR", storage: "128GB", tradeInValue: 500, category: "iPhone XR" },
@@ -167,26 +302,12 @@ export const UPGRADE_PRODUCTS: UpgradeProduct[] = [
 ];
 
 // --- ABATIMENTOS POR CONDIÇÃO DO APARELHO ---
-// Conforme Manual Interno de Compra e Upgrade — Tio Sam Imports
-// Valores são PADRÃO mas EDITÁVEIS pelo vendedor
-export interface ConditionDeduction {
-  id: string;
-  label: string;
-  description: string;
-  defaultValue: number; // valor padrão (referência)
-  icon: string;
-  category: "estado" | "bateria" | "funcionalidade" | "garantia";
-}
-
-export const CONDITION_DEDUCTIONS: ConditionDeduction[] = [
-  // ESTADO FÍSICO
+export const DEFAULT_CONDITION_DEDUCTIONS: ConditionDeduction[] = [
   { id: "detalhes-leves", label: "Detalhes Leves", description: "Arranhões leves / marcas superficiais", defaultValue: 100, icon: "sparkles", category: "estado" },
   { id: "detalhes-moderados", label: "Detalhes Moderados", description: "Riscos fortes / tampa com marcas pesadas", defaultValue: 200, icon: "shield-alert", category: "estado" },
   { id: "estado-regular", label: "Estado Regular", description: "Amassado leve / vidro traseiro trincado", defaultValue: 350, icon: "shield-x", category: "estado" },
-  // BATERIA
   { id: "bateria-84-80", label: "Bateria 84% a 80%", description: "Saúde da bateria entre 84% e 80%", defaultValue: 150, icon: "battery-medium", category: "bateria" },
   { id: "bateria-abaixo-80", label: "Bateria Abaixo de 80%", description: "Saúde da bateria abaixo de 80%", defaultValue: 250, icon: "battery-low", category: "bateria" },
-  // FUNCIONALIDADES
   { id: "face-id-defeito", label: "Face ID Falhando", description: "Reconhecimento facial não funciona", defaultValue: 300, icon: "scan-face", category: "funcionalidade" },
   { id: "true-tone-ausente", label: "True Tone Ausente", description: "True Tone não disponível", defaultValue: 125, icon: "sun", category: "funcionalidade" },
   { id: "tela-1a-linha", label: "Tela Trocada 1ª Linha", description: "Display substituído por peça de 1ª linha", defaultValue: 200, icon: "monitor", category: "funcionalidade" },
@@ -195,19 +316,10 @@ export const CONDITION_DEDUCTIONS: ConditionDeduction[] = [
   { id: "camera-manchas", label: "Câmera com Manchas", description: "Câmera traseira ou frontal com manchas", defaultValue: 250, icon: "camera", category: "funcionalidade" },
   { id: "alto-falante-mic", label: "Alto-falante / Microfone", description: "Som distorcido, sem áudio ou microfone com defeito", defaultValue: 200, icon: "volume-x", category: "funcionalidade" },
   { id: "vibracao-rede", label: "Vibração / Rede Irregular", description: "Vibração não funciona ou rede instável", defaultValue: 200, icon: "wifi-off", category: "funcionalidade" },
-  // GARANTIA (bônus positivo)
   { id: "garantia-apple", label: "Garantia Apple Ativa", description: "Aparelho com garantia Apple vigente (bônus)", defaultValue: -250, icon: "shield-check", category: "garantia" },
 ];
 
-// --- TAXAS DE PARCELAMENTO FIXAS — TIO SAM IMPORTS ---
-// REGRA ABSOLUTA: Parcela = (Valor ÷ (1 − taxa)) ÷ número de parcelas
-// Taxas FIXAS e IMUTÁVEIS: 8x=9,630% | 10x=10,760% | 12x=11,880% | 18x=17,000%
-export interface InstallmentRate {
-  installments: number;
-  rate: number; // percentual decimal (ex: 0.09630 = 9,630%)
-  label: string;
-}
-
+// --- TAXAS DE PARCELAMENTO ---
 export const DEFAULT_INSTALLMENT_RATES: InstallmentRate[] = [
   { installments: 8, rate: 0.09630, label: "8x" },
   { installments: 10, rate: 0.10760, label: "10x" },
@@ -215,22 +327,17 @@ export const DEFAULT_INSTALLMENT_RATES: InstallmentRate[] = [
   { installments: 18, rate: 0.17000, label: "18x" },
 ];
 
-/**
- * Calcula o valor da parcela usando a fórmula EXATA da maquininha:
- * Parcela = (Valor ÷ (1 − taxa)) ÷ número de parcelas
- * 
- * - NÃO arredondar nenhum valor intermediário
- * - Arredondar apenas o valor final da parcela para 2 casas decimais
- */
+// --- TEXTO PADRÃO DO ORÇAMENTO ---
+export const DEFAULT_ORCAMENTO_CLOSING = "O que achou dessa proposta?";
+
+// --- FUNÇÕES DE CÁLCULO ---
+
 export function calcularParcela(valor: number, taxa: number, parcelas: number): number {
   const valorComTaxa = valor / (1 - taxa);
   const valorParcela = valorComTaxa / parcelas;
   return Math.round(valorParcela * 100) / 100;
 }
 
-/**
- * Calcula o valor total parcelado (parcela * número de parcelas)
- */
 export function calcularTotalParcelado(valor: number, taxa: number, parcelas: number): number {
   const parcela = calcularParcela(valor, taxa, parcelas);
   return parcela * parcelas;
@@ -256,21 +363,23 @@ export function getUpgradeCategories(products: UpgradeProduct[]): string[] {
   return Array.from(new Set(products.map((p) => p.category)));
 }
 
-/**
- * Gera o texto do orçamento formatado para WhatsApp
- * Segue EXATAMENTE o padrão da Tio Sam Imports
- */
 export function gerarOrcamentoTexto(
   product: Product,
   upgrade: UpgradeProduct | null,
   amountToPay: number,
+  rates: InstallmentRate[],
+  closingText: string,
 ): string {
   const lines: string[] = [];
 
   lines.push("📱 Orçamento – Tio Sam Imports");
   lines.push("");
   lines.push(`📲 ${product.name}`);
-  lines.push(`${product.storage}`);
+  const details: string[] = [product.storage];
+  if (product.color) details.push(product.color);
+  if (product.condition === "seminovo") details.push("Seminovo");
+  else details.push("Lacrado");
+  lines.push(details.join(" • "));
   lines.push(`💰 Valor do aparelho: \`${formatCurrencyCode(product.price)}\``);
   lines.push("");
 
@@ -287,14 +396,13 @@ export function gerarOrcamentoTexto(
 
   lines.push("");
 
-  // Calcular parcelas com a fórmula exata
-  for (const rate of DEFAULT_INSTALLMENT_RATES) {
+  for (const rate of rates) {
     const parcela = calcularParcela(amountToPay, rate.rate, rate.installments);
     lines.push(`💳 ${rate.installments}x de \`${formatCurrencyCode(parcela)}\``);
   }
 
   lines.push("");
-  lines.push("O que achou dessa proposta?");
+  lines.push(closingText);
 
   return lines.join("\n");
 }

@@ -12,8 +12,8 @@ interface InstallmentRatesProps {
   rates: InstallmentRate[];
   selectedInstallments: number;
   onSelectInstallments: (n: number) => void;
-  onUpdateRate: (installments: number, rate: number) => void;
-  onResetRates: () => void;
+  onUpdateRate?: (installments: number, rate: number) => void;
+  onResetRates?: () => void;
   amountToPay: number;
 }
 
@@ -168,7 +168,7 @@ export default function InstallmentRates({
                     onChange={(e) => {
                       const val = parseFloat(e.target.value);
                       if (!isNaN(val) && val >= 0 && val < 1) {
-                        onUpdateRate(rate.installments, val);
+                        onUpdateRate?.(rate.installments, val);
                       }
                     }}
                     className="w-20 px-2 py-1.5 text-xs text-right font-mono bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"

@@ -1,10 +1,9 @@
 import { useState, useCallback, useMemo } from "react";
 import {
-  Product,
-  UpgradeProduct,
-  InstallmentRate,
-  DEFAULT_INSTALLMENT_RATES,
-  CONDITION_DEDUCTIONS,
+  type Product,
+  type UpgradeProduct,
+  type InstallmentRate,
+  type ConditionDeduction,
   calcularParcela,
   calcularTotalParcelado,
 } from "@/lib/data";
@@ -12,7 +11,7 @@ import {
 // Abatimento ativo com valor editável
 export interface ActiveDeduction {
   id: string;
-  value: number; // valor atual (pode ser editado pelo vendedor)
+  value: number;
 }
 
 // "Outros" — abatimento livre definido pelo vendedor
@@ -27,8 +26,7 @@ export interface OrcamentoState {
   selectedUpgrade: UpgradeProduct | null;
   activeDeductions: ActiveDeduction[];
   customDeductions: CustomDeduction[];
-  installmentRates: InstallmentRate[];
-  selectedInstallments: number; // 0 = à vista PIX, ou 8/10/12/18
+  selectedInstallments: number;
 }
 
 export interface InstallmentDetail {
@@ -42,9 +40,9 @@ export interface InstallmentDetail {
 export interface OrcamentoCalculations {
   productPrice: number;
   upgradeValue: number;
-  totalDeductions: number; // total de abatimentos (positivo = desconta do upgrade)
-  totalBonus: number; // total de bônus (garantia apple, etc.)
-  netDeductions: number; // totalDeductions - totalBonus
+  totalDeductions: number;
+  totalBonus: number;
+  netDeductions: number;
   netUpgradeValue: number;
   amountToPay: number;
   installmentOptions: InstallmentDetail[];
@@ -52,31 +50,17 @@ export interface OrcamentoCalculations {
   deductionDetails: { id: string; label: string; value: number; isBonus: boolean }[];
 }
 
-const STORAGE_KEY = "tiosam-rates-v2";
-
-function loadSavedRates(): InstallmentRate[] | null {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return JSON.parse(saved);
-  } catch { /* ignore */ }
-  return null;
-}
-
-function saveRates(rates: InstallmentRate[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(rates));
-  } catch { /* ignore */ }
-}
-
 let customIdCounter = 0;
 
-export function useOrcamento() {
+export function useOrcamento(
+  conditionDeductions: ConditionDeduction[],
+  installmentRates: InstallmentRate[],
+) {
   const [state, setState] = useState<OrcamentoState>({
     selectedProduct: null,
     selectedUpgrade: null,
     activeDeductions: [],
     customDeductions: [],
-    installmentRates: loadSavedRates() || DEFAULT_INSTALLMENT_RATES.map((r) => ({ ...r })),
     selectedInstallments: 0,
   });
 
@@ -94,7 +78,6 @@ export function useOrcamento() {
     }));
   }, []);
 
-  // Toggle um abatimento padrão (ativa/desativa)
   const toggleDeduction = useCallback((deductionId: string) => {
     setState((prev) => {
       const exists = prev.activeDeductions.find((d) => d.id === deductionId);
@@ -104,17 +87,15 @@ export function useOrcamento() {
           activeDeductions: prev.activeDeductions.filter((d) => d.id !== deductionId),
         };
       }
-      // Ativar com valor padrão
-      const def = CONDITION_DEDUCTIONS.find((cd) => cd.id === deductionId);
+      const def = conditionDeductions.find((cd: ConditionDeduction) => cd.id === deductionId);
       if (!def) return prev;
       return {
         ...prev,
         activeDeductions: [...prev.activeDeductions, { id: deductionId, value: def.defaultValue }],
       };
     });
-  }, []);
+  }, [conditionDeductions]);
 
-  // Editar valor de um abatimento ativo
   const updateDeductionValue = useCallback((deductionId: string, newValue: number) => {
     setState((prev) => ({
       ...prev,
@@ -124,7 +105,6 @@ export function useOrcamento() {
     }));
   }, []);
 
-  // Adicionar abatimento personalizado (Outros)
   const addCustomDeduction = useCallback((label: string, value: number) => {
     customIdCounter++;
     const newCustom: CustomDeduction = {
@@ -138,7 +118,6 @@ export function useOrcamento() {
     }));
   }, []);
 
-  // Remover abatimento personalizado
   const removeCustomDeduction = useCallback((id: string) => {
     setState((prev) => ({
       ...prev,
@@ -146,7 +125,6 @@ export function useOrcamento() {
     }));
   }, []);
 
-  // Editar valor de abatimento personalizado
   const updateCustomDeduction = useCallback((id: string, label: string, value: number) => {
     setState((prev) => ({
       ...prev,
@@ -160,32 +138,14 @@ export function useOrcamento() {
     setState((prev) => ({ ...prev, selectedInstallments: installments }));
   }, []);
 
-  const updateRate = useCallback((installments: number, newRate: number) => {
-    setState((prev) => {
-      const updated = prev.installmentRates.map((r) =>
-        r.installments === installments ? { ...r, rate: newRate } : r
-      );
-      saveRates(updated);
-      return { ...prev, installmentRates: updated };
-    });
-  }, []);
-
-  const resetRates = useCallback(() => {
-    const defaults = DEFAULT_INSTALLMENT_RATES.map((r) => ({ ...r }));
-    localStorage.removeItem(STORAGE_KEY);
-    saveRates(defaults);
-    setState((prev) => ({ ...prev, installmentRates: defaults }));
-  }, []);
-
   const resetAll = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
+    setState({
       selectedProduct: null,
       selectedUpgrade: null,
       activeDeductions: [],
       customDeductions: [],
       selectedInstallments: 0,
-    }));
+    });
   }, []);
 
   // --- Cálculos ---
@@ -193,23 +153,20 @@ export function useOrcamento() {
     const productPrice = state.selectedProduct?.price ?? 0;
     const upgradeValue = state.selectedUpgrade?.tradeInValue ?? 0;
 
-    // Montar detalhes dos abatimentos
     const deductionDetails: { id: string; label: string; value: number; isBonus: boolean }[] = [];
 
-    // Abatimentos padrão ativos
     for (const active of state.activeDeductions) {
-      const def = CONDITION_DEDUCTIONS.find((cd) => cd.id === active.id);
+      const def = conditionDeductions.find((cd: ConditionDeduction) => cd.id === active.id);
       if (def) {
         deductionDetails.push({
           id: active.id,
           label: def.label,
           value: active.value,
-          isBonus: def.defaultValue < 0, // garantia apple = bônus
+          isBonus: def.defaultValue < 0,
         });
       }
     }
 
-    // Abatimentos personalizados
     for (const custom of state.customDeductions) {
       deductionDetails.push({
         id: custom.id,
@@ -219,7 +176,6 @@ export function useOrcamento() {
       });
     }
 
-    // Separar abatimentos e bônus
     const totalDeductions = deductionDetails
       .filter((d) => !d.isBonus)
       .reduce((sum, d) => sum + Math.abs(d.value), 0);
@@ -228,14 +184,10 @@ export function useOrcamento() {
       .reduce((sum, d) => sum + Math.abs(d.value), 0);
     const netDeductions = totalDeductions - totalBonus;
 
-    // Valor líquido do upgrade
     const netUpgradeValue = Math.max(0, upgradeValue - netDeductions);
-
-    // Valor a pagar (à vista no PIX — base real)
     const amountToPay = Math.max(0, productPrice - netUpgradeValue);
 
-    // Calcular TODAS as opções de parcelamento
-    const installmentOptions: InstallmentDetail[] = state.installmentRates.map((r) => {
+    const installmentOptions: InstallmentDetail[] = installmentRates.map((r) => {
       const parcela = calcularParcela(amountToPay, r.rate, r.installments);
       const total = calcularTotalParcelado(amountToPay, r.rate, r.installments);
       return { installments: r.installments, rate: r.rate, parcela, total, label: r.label };
@@ -257,7 +209,7 @@ export function useOrcamento() {
       installmentOptions,
       selectedDetail,
     };
-  }, [state]);
+  }, [state, conditionDeductions, installmentRates]);
 
   return {
     state,
@@ -270,8 +222,6 @@ export function useOrcamento() {
     removeCustomDeduction,
     updateCustomDeduction,
     setInstallments,
-    updateRate,
-    resetRates,
     resetAll,
   };
 }

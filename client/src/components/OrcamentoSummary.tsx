@@ -4,7 +4,7 @@
  * Fórmula: Parcela = (Valor ÷ (1 − taxa)) ÷ número de parcelas
  */
 import { useState } from "react";
-import { Product, UpgradeProduct, formatCurrency, gerarOrcamentoTexto } from "@/lib/data";
+import { Product, UpgradeProduct, InstallmentRate, formatCurrency, gerarOrcamentoTexto } from "@/lib/data";
 import { OrcamentoCalculations } from "@/hooks/useOrcamento";
 import {
   Receipt,
@@ -26,6 +26,8 @@ interface OrcamentoSummaryProps {
   selectedUpgrade: UpgradeProduct | null;
   calculations: OrcamentoCalculations;
   selectedInstallments: number;
+  installmentRates: InstallmentRate[];
+  closingText: string;
   onReset: () => void;
 }
 
@@ -34,6 +36,8 @@ export default function OrcamentoSummary({
   selectedUpgrade,
   calculations,
   selectedInstallments,
+  installmentRates,
+  closingText,
   onReset,
 }: OrcamentoSummaryProps) {
   const [copied, setCopied] = useState(false);
@@ -46,6 +50,8 @@ export default function OrcamentoSummary({
       selectedProduct,
       selectedUpgrade,
       calculations.amountToPay,
+      installmentRates,
+      closingText,
     );
     navigator.clipboard.writeText(texto).then(() => {
       setCopied(true);
@@ -59,6 +65,8 @@ export default function OrcamentoSummary({
       selectedProduct,
       selectedUpgrade,
       calculations.amountToPay,
+      installmentRates,
+      closingText,
     );
     const encoded = encodeURIComponent(texto);
     window.open(`https://wa.me/?text=${encoded}`, "_blank");
@@ -103,11 +111,16 @@ export default function OrcamentoSummary({
                 <Smartphone className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                 <div>
                   <p className="text-sm font-semibold text-foreground">{selectedProduct.name}</p>
-                  <p className="text-xs text-muted-foreground">{selectedProduct.storage}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedProduct.storage}
+                    {selectedProduct.color && ` • ${selectedProduct.color}`}
+                    {" • "}
+                    {selectedProduct.condition === "novo" ? "Lacrado" : "Seminovo"}
+                  </p>
                 </div>
               </div>
-              <span className="money-value text-sm text-foreground shrink-0">
-                {formatCurrency(calculations.productPrice)}
+              <span className="font-mono text-sm font-bold text-foreground shrink-0">
+                {selectedProduct.price > 0 ? formatCurrency(calculations.productPrice) : "A definir"}
               </span>
             </div>
           )}
@@ -117,13 +130,13 @@ export default function OrcamentoSummary({
             <>
               <div className="flex items-start justify-between py-2.5 border-b border-border">
                 <div className="flex items-start gap-2.5">
-                  <ArrowLeftRight className="w-4 h-4 text-emerald mt-0.5 shrink-0" />
+                  <ArrowLeftRight className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-sm font-semibold text-foreground">{selectedUpgrade.name}</p>
                     <p className="text-xs text-muted-foreground">{selectedUpgrade.storage} — Avaliação</p>
                   </div>
                 </div>
-                <span className="money-value text-sm text-emerald shrink-0">
+                <span className="font-mono text-sm font-bold text-emerald-600 shrink-0">
                   -{formatCurrency(calculations.upgradeValue)}
                 </span>
               </div>
@@ -134,30 +147,24 @@ export default function OrcamentoSummary({
                   {calculations.deductionDetails.map((d, i) => (
                     <div key={i} className="flex items-center justify-between py-0.5">
                       <div className="flex items-center gap-1.5">
-                        <AlertTriangle className={`w-3 h-3 ${d.isBonus ? "text-emerald/70" : "text-destructive/70"}`} />
+                        <AlertTriangle className={`w-3 h-3 ${d.isBonus ? "text-emerald-600/70" : "text-destructive/70"}`} />
                         <span className="text-xs text-muted-foreground">{d.label}</span>
                       </div>
-                      <span className={`money-value text-xs ${d.isBonus ? "text-emerald" : "text-destructive"}`}>
+                      <span className={`font-mono text-xs font-semibold ${d.isBonus ? "text-emerald-600" : "text-destructive"}`}>
                         {d.isBonus ? "-" : "+"}{formatCurrency(Math.abs(d.value))}
                       </span>
                     </div>
                   ))}
                   <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-dashed border-border">
-                    <span className="text-xs font-semibold text-muted-foreground">
-                      Total abatimentos
-                    </span>
-                    <span className="money-value text-xs text-destructive font-bold">
-                      +{formatCurrency(calculations.netDeductions)}
-                    </span>
+                    <span className="text-xs font-semibold text-muted-foreground">Total abatimentos</span>
+                    <span className="font-mono text-xs text-destructive font-bold">+{formatCurrency(calculations.netDeductions)}</span>
                   </div>
                   <div className="flex items-center justify-between pt-1">
                     <div className="flex items-center gap-1.5">
-                      <TrendingDown className="w-3 h-3 text-emerald" />
+                      <TrendingDown className="w-3 h-3 text-emerald-600" />
                       <span className="text-xs font-semibold text-foreground">Valor líquido da troca</span>
                     </div>
-                    <span className="money-value text-xs text-emerald font-bold">
-                      -{formatCurrency(calculations.netUpgradeValue)}
-                    </span>
+                    <span className="font-mono text-xs text-emerald-600 font-bold">-{formatCurrency(calculations.netUpgradeValue)}</span>
                   </div>
                 </div>
               )}
@@ -173,7 +180,7 @@ export default function OrcamentoSummary({
               <span className="text-base font-bold text-foreground">À Vista no PIX</span>
               <p className="text-[10px] text-muted-foreground">(base real)</p>
             </div>
-            <span className="money-value text-xl text-foreground">
+            <span className="font-mono text-xl font-bold text-foreground">
               {formatCurrency(calculations.amountToPay)}
             </span>
           </div>
@@ -185,40 +192,34 @@ export default function OrcamentoSummary({
                 <CreditCard className="w-4 h-4 text-primary" />
                 <span className="text-base font-bold text-primary">
                   {calculations.selectedDetail.installments}x de{" "}
-                  <span className="money-value">
-                    {formatCurrency(calculations.selectedDetail.parcela)}
-                  </span>
+                  <span className="font-mono">{formatCurrency(calculations.selectedDetail.parcela)}</span>
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs text-muted-foreground bg-background/60 rounded-lg px-3 py-2">
-                <span>Taxa: <strong>{(calculations.selectedDetail.rate * 100).toFixed(2)}%</strong></span>
+                <span>Taxa: <strong>{(calculations.selectedDetail.rate * 100).toFixed(3)}%</strong></span>
                 <span>Juros: <strong className="text-destructive">{formatCurrency(calculations.selectedDetail.total - calculations.amountToPay)}</strong></span>
               </div>
               <div className="flex items-center justify-between pt-1.5 border-t border-primary/10">
                 <span className="text-xs font-semibold text-foreground">Total parcelado</span>
-                <span className="money-value text-sm text-primary font-bold">
-                  {formatCurrency(calculations.selectedDetail.total)}
-                </span>
+                <span className="font-mono text-sm text-primary font-bold">{formatCurrency(calculations.selectedDetail.total)}</span>
               </div>
             </div>
           )}
 
           {/* À vista selecionado */}
           {selectedInstallments === 0 && calculations.amountToPay > 0 && (
-            <div className="bg-emerald-light border border-emerald/20 rounded-xl p-4">
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-1">
-                <Banknote className="w-4 h-4 text-emerald" />
-                <span className="text-sm font-bold text-emerald">
-                  Pagamento à vista no PIX
-                </span>
+                <Banknote className="w-4 h-4 text-emerald-600" />
+                <span className="text-sm font-bold text-emerald-600">Pagamento à vista no PIX</span>
               </div>
-              <p className="money-value text-2xl text-emerald">
+              <p className="font-mono text-2xl font-bold text-emerald-600">
                 {formatCurrency(calculations.amountToPay)}
               </p>
             </div>
           )}
 
-          {/* Todas as opções de parcelamento (resumo compacto) */}
+          {/* Todas as opções de parcelamento */}
           {calculations.amountToPay > 0 && (
             <div className="mt-2 space-y-1.5 pt-2 border-t border-border">
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mb-2">
@@ -226,24 +227,18 @@ export default function OrcamentoSummary({
               </p>
               <div className="flex items-center justify-between py-1">
                 <span className="text-xs text-muted-foreground">PIX à vista</span>
-                <span className="money-value text-xs text-foreground font-semibold">
-                  {formatCurrency(calculations.amountToPay)}
-                </span>
+                <span className="font-mono text-xs text-foreground font-semibold">{formatCurrency(calculations.amountToPay)}</span>
               </div>
               {calculations.installmentOptions.map((opt) => (
                 <div key={opt.installments} className="flex items-center justify-between py-1">
-                  <span className="text-xs text-muted-foreground">
-                    {opt.installments}x
-                  </span>
-                  <span className="money-value text-xs text-foreground font-semibold">
-                    {opt.installments}x {formatCurrency(opt.parcela)}
-                  </span>
+                  <span className="text-xs text-muted-foreground">{opt.installments}x</span>
+                  <span className="font-mono text-xs text-foreground font-semibold">{opt.installments}x {formatCurrency(opt.parcela)}</span>
                 </div>
               ))}
             </div>
           )}
 
-          {/* Botões de ação — Gerar orçamento */}
+          {/* Botões de ação */}
           {selectedProduct && calculations.amountToPay > 0 && (
             <div className="mt-3 pt-3 border-t border-border space-y-2">
               <button
@@ -256,38 +251,31 @@ export default function OrcamentoSummary({
 
               {showOrcamento && (
                 <div className="space-y-2">
-                  {/* Preview do texto */}
                   <div className="bg-gray-900 text-gray-100 rounded-xl p-4 text-xs font-mono whitespace-pre-wrap leading-relaxed">
                     {gerarOrcamentoTexto(
                       selectedProduct,
                       selectedUpgrade,
                       calculations.amountToPay,
+                      installmentRates,
+                      closingText,
                     )}
                   </div>
-
                   <div className="flex gap-2">
                     <button
                       onClick={handleCopyOrcamento}
                       className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-secondary text-secondary-foreground text-xs font-semibold hover:bg-accent active:scale-[0.98] transition-all"
                     >
                       {copied ? (
-                        <>
-                          <Check className="w-3.5 h-3.5 text-emerald" />
-                          Copiado!
-                        </>
+                        <><Check className="w-3.5 h-3.5 text-emerald-600" /> Copiado!</>
                       ) : (
-                        <>
-                          <Copy className="w-3.5 h-3.5" />
-                          Copiar
-                        </>
+                        <><Copy className="w-3.5 h-3.5" /> Copiar</>
                       )}
                     </button>
                     <button
                       onClick={handleShareWhatsApp}
                       className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-[#25D366] text-white text-xs font-semibold hover:bg-[#22c55e] active:scale-[0.98] transition-all"
                     >
-                      <MessageCircle className="w-3.5 h-3.5" />
-                      WhatsApp
+                      <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
                     </button>
                   </div>
                 </div>

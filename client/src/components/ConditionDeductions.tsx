@@ -4,7 +4,7 @@
  * Valores EDITÁVEIS + opção "Outros" com campo livre
  */
 import { useState } from "react";
-import { CONDITION_DEDUCTIONS, formatCurrency } from "@/lib/data";
+import { ConditionDeduction, formatCurrency } from "@/lib/data";
 import { ActiveDeduction, CustomDeduction } from "@/hooks/useOrcamento";
 import {
   Sparkles,
@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 
 interface ConditionDeductionsProps {
+  conditionDeductions: ConditionDeduction[];
   activeDeductions: ActiveDeduction[];
   customDeductions: CustomDeduction[];
   onToggle: (id: string) => void;
@@ -69,6 +70,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 const CATEGORY_ORDER = ["estado", "bateria", "funcionalidade", "garantia"];
 
 export default function ConditionDeductions({
+  conditionDeductions,
   activeDeductions,
   customDeductions,
   onToggle,
@@ -104,7 +106,7 @@ export default function ConditionDeductions({
   };
 
   const handleResetValue = (id: string) => {
-    const def = CONDITION_DEDUCTIONS.find((cd) => cd.id === id);
+    const def = conditionDeductions.find((cd: ConditionDeduction) => cd.id === id);
     if (def) {
       onUpdateValue(id, def.defaultValue);
     }
@@ -124,7 +126,7 @@ export default function ConditionDeductions({
   const grouped = CATEGORY_ORDER.map((cat) => ({
     category: cat,
     label: CATEGORY_LABELS[cat],
-    items: CONDITION_DEDUCTIONS.filter((d) => d.category === cat),
+    items: conditionDeductions.filter((d: ConditionDeduction) => d.category === cat),
   }));
 
   const netDeductions = totalDeductions - totalBonus;

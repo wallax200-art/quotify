@@ -1,23 +1,24 @@
 /**
  * UpgradeSelector — Seletor de produto de upgrade/troca do cliente
- * Design: Tech Workspace — cards com hover, busca, valor de avaliação
+ * Recebe lista de produtos via props (do ConfigContext)
  */
 import { useState, useMemo } from "react";
-import { UpgradeProduct, UPGRADE_PRODUCTS, getUpgradeCategories, formatCurrency } from "@/lib/data";
-import { Search, ArrowLeftRight, Check, X } from "lucide-react";
+import { UpgradeProduct, getUpgradeCategories, formatCurrency } from "@/lib/data";
+import { Search, ArrowLeftRight, Check, X, Package } from "lucide-react";
 
 interface UpgradeSelectorProps {
+  upgradeProducts: UpgradeProduct[];
   selectedUpgrade: UpgradeProduct | null;
   onSelect: (upgrade: UpgradeProduct | null) => void;
 }
 
-export default function UpgradeSelector({ selectedUpgrade, onSelect }: UpgradeSelectorProps) {
+export default function UpgradeSelector({ upgradeProducts, selectedUpgrade, onSelect }: UpgradeSelectorProps) {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const categories = useMemo(() => getUpgradeCategories(UPGRADE_PRODUCTS), []);
+  const categories = useMemo(() => getUpgradeCategories(upgradeProducts), [upgradeProducts]);
 
   const filtered = useMemo(() => {
-    let list = UPGRADE_PRODUCTS;
+    let list = upgradeProducts;
     if (activeCategory) {
       list = list.filter((p) => p.category === activeCategory);
     }
@@ -30,7 +31,7 @@ export default function UpgradeSelector({ selectedUpgrade, onSelect }: UpgradeSe
       );
     }
     return list;
-  }, [search, activeCategory]);
+  }, [upgradeProducts, search, activeCategory]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, UpgradeProduct[]>();
@@ -47,8 +48,8 @@ export default function UpgradeSelector({ selectedUpgrade, onSelect }: UpgradeSe
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-emerald/10 flex items-center justify-center">
-            <ArrowLeftRight className="w-4 h-4 text-emerald" />
+          <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+            <ArrowLeftRight className="w-4 h-4 text-emerald-600" />
           </div>
           <h2 className="text-lg font-bold text-foreground tracking-tight">Aparelho de Troca</h2>
         </div>
@@ -64,9 +65,9 @@ export default function UpgradeSelector({ selectedUpgrade, onSelect }: UpgradeSe
 
       {/* Upgrade selecionado */}
       {selectedUpgrade && (
-        <div className="bg-emerald-light border border-emerald/20 rounded-xl p-3.5 flex items-center justify-between">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-emerald flex items-center justify-center shadow-sm">
+            <div className="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center shadow-sm">
               <Check className="w-4 h-4 text-white" />
             </div>
             <div>
@@ -76,7 +77,7 @@ export default function UpgradeSelector({ selectedUpgrade, onSelect }: UpgradeSe
           </div>
           <div className="text-right">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Avaliação</p>
-            <span className="money-value text-emerald text-base">
+            <span className="font-mono text-base font-bold text-emerald-600">
               {formatCurrency(selectedUpgrade.tradeInValue)}
             </span>
           </div>
@@ -91,7 +92,7 @@ export default function UpgradeSelector({ selectedUpgrade, onSelect }: UpgradeSe
           placeholder="Buscar aparelho do cliente..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald/30 focus:border-emerald transition-all"
+          className="w-full pl-9 pr-4 py-2.5 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-300/30 focus:border-emerald-500 transition-all"
         />
       </div>
 
@@ -101,7 +102,7 @@ export default function UpgradeSelector({ selectedUpgrade, onSelect }: UpgradeSe
           onClick={() => setActiveCategory(null)}
           className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
             !activeCategory
-              ? "bg-emerald text-white shadow-sm"
+              ? "bg-emerald-600 text-white shadow-sm"
               : "bg-secondary text-secondary-foreground hover:bg-accent"
           }`}
         >
@@ -113,11 +114,11 @@ export default function UpgradeSelector({ selectedUpgrade, onSelect }: UpgradeSe
             onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
               activeCategory === cat
-                ? "bg-emerald text-white shadow-sm"
+                ? "bg-emerald-600 text-white shadow-sm"
                 : "bg-secondary text-secondary-foreground hover:bg-accent"
             }`}
           >
-            {cat}
+            {cat.replace("iPhone ", "")}
           </button>
         ))}
       </div>
@@ -138,8 +139,8 @@ export default function UpgradeSelector({ selectedUpgrade, onSelect }: UpgradeSe
                     onClick={() => onSelect(isSelected ? null : product)}
                     className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-left transition-all active:scale-[0.99] ${
                       isSelected
-                        ? "bg-emerald text-white shadow-md"
-                        : "bg-card hover:bg-accent border border-border hover:border-emerald/30 hover:shadow-sm"
+                        ? "bg-emerald-600 text-white shadow-md"
+                        : "bg-card hover:bg-accent border border-border hover:border-emerald-300 hover:shadow-sm"
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -154,7 +155,7 @@ export default function UpgradeSelector({ selectedUpgrade, onSelect }: UpgradeSe
                       </span>
                       <span className="text-sm font-medium">{product.name}</span>
                     </div>
-                    <span className={`money-value text-sm ${isSelected ? "text-white" : "text-emerald"}`}>
+                    <span className={`font-mono text-sm font-semibold ${isSelected ? "text-white" : "text-emerald-600"}`}>
                       {formatCurrency(product.tradeInValue)}
                     </span>
                   </button>
@@ -164,8 +165,9 @@ export default function UpgradeSelector({ selectedUpgrade, onSelect }: UpgradeSe
           </div>
         ))}
         {filtered.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground text-sm">
-            Nenhum aparelho encontrado
+          <div className="text-center py-8">
+            <Package className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+            <p className="text-muted-foreground text-sm">Nenhum aparelho encontrado</p>
           </div>
         )}
       </div>
