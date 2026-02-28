@@ -31,30 +31,30 @@ import { useTheme } from "@/contexts/ThemeContext";
 const STEPS = [
   {
     icon: Smartphone,
-    title: "Selecione o aparelho",
-    description: "Escolha o produto que o cliente deseja comprar",
+    title: "Escolha o produto",
+    description: "Selecione entre iPhones, iPads, MacBooks, Apple Watch e acessórios com todos os modelos e armazenamentos",
   },
   {
     icon: ArrowLeftRight,
-    title: "Informe o usado",
-    description: "Avalie o aparelho do cliente e suas condições",
+    title: "Calcule a troca",
+    description: "Informe o aparelho usado do cliente e aplique descontos por condição — tela, bateria, botões e mais",
   },
   {
     icon: Calculator,
-    title: "Cálculo automático",
-    description: "Taxas e abatimentos calculados instantaneamente",
+    title: "Orçamento automático",
+    description: "O sistema calcula o valor final com taxas de parcelamento da maquininha, bônus e abatimentos em tempo real",
   },
   {
     icon: MessageCircle,
-    title: "Envie no WhatsApp",
-    description: "Copie o orçamento pronto e envie ao cliente",
+    title: "Envie pelo WhatsApp",
+    description: "Gere o orçamento formatado com todos os detalhes e envie direto ao cliente em um clique",
   },
 ];
 
 const FEATURES = [
-  { icon: Zap, title: "Rápido", description: "Orçamento em segundos" },
-  { icon: Shield, title: "Preciso", description: "Fórmula da maquininha" },
-  { icon: Clock, title: "Prático", description: "Feito para o balcão" },
+  { icon: Zap, title: "Orçamento instantâneo", description: "Gere orçamentos completos em segundos" },
+  { icon: ArrowLeftRight, title: "Cálculo de troca", description: "Valor exato do usado com descontos por condição" },
+  { icon: Shield, title: "Taxas da maquininha", description: "Parcelamento com as taxas reais aplicadas" },
 ];
 
 type ViewMode = "landing" | "login" | "register";
@@ -572,12 +572,12 @@ export default function Landing() {
           {/* Main headline */}
           <div className="text-center max-w-2xl mx-auto mb-12">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground mb-4 leading-tight">
-              Menos cálculo.{" "}
-              <span className="text-primary">Mais vendas.</span>
+              Orçamento de troca{" "}
+              <span className="text-primary">simples e rápido.</span>
             </h1>
             <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-xl mx-auto">
-              Sistema inteligente de orçamento para lojistas de iPhone.
-              Avalie usado, calcule taxas e gere texto pronto para WhatsApp.
+              Calcule o valor de troca de iPhones, aplique descontos por condição do aparelho,
+              parcele com as taxas reais da maquininha e envie o orçamento pronto pelo WhatsApp.
             </p>
           </div>
 
@@ -648,7 +648,7 @@ export default function Landing() {
               Como funciona o Quotify
             </h2>
             <p className="text-muted-foreground">
-              Orçar. Avaliar. Fechar.
+              4 passos para gerar o orçamento completo com troca e parcelamento
             </p>
           </div>
 
@@ -681,7 +681,7 @@ export default function Landing() {
 
           <div className="text-center mt-12">
             <p className="text-lg sm:text-xl font-semibold text-foreground/80 italic">
-              "Padronize sua equipe. Proteja sua margem. Feche mais rápido."
+              "Calcule a troca, aplique as taxas e feche a venda — tudo em um só lugar."
             </p>
           </div>
         </div>
@@ -690,7 +690,7 @@ export default function Landing() {
       {/* Bottom CTA */}
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 text-center">
         <p className="text-sm text-muted-foreground mb-6">
-          Feito para o ritmo real do balcão.
+          Orçamentos profissionais para sua loja de Apple.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Button

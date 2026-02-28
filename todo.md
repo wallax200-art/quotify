@@ -30,3 +30,4 @@
 - [x] Adicionar logo do aplicativo ao header, landing page e favicon
 - [x] Adicionar modo claro e modo escuro (toggle de tema)
 - [x] Corrigir botão de edição de preço no card do produto selecionado (não abre o editor)
+- [x] Melhorar descrição dos benefícios na landing page (destacar cálculo de troca, orçamento prático, remover "feito pra balcão")
