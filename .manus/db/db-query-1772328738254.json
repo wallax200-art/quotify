@@ -1,0 +1,14 @@
+{
+  "query": "SELECT settingKey, settingValue FROM app_settings WHERE settingKey = 'admin_whatsapp';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2pUNe727c8yqxdN.root --database ji3XHgPR7e79CMEH66Wkcf --execute SELECT settingKey, settingValue FROM app_settings WHERE settingKey = 'admin_whatsapp';",
+  "rows": [
+    {
+      "settingKey": "admin_whatsapp",
+      "settingValue": "5511999999999"
+    }
+  ],
+  "messages": [],
+  "stdout": "settingKey\tsettingValue\nadmin_whatsapp\t5511999999999\n",
+  "stderr": "",
+  "execution_time_ms": 351
+}
