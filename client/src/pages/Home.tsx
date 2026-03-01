@@ -29,6 +29,7 @@ import {
   Loader2,
   Sun,
   Moon,
+  RefreshCw,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -135,6 +136,15 @@ export default function Home() {
                 <Shield className="w-4.5 h-4.5" />
               </Link>
             )}
+
+            {/* Refresh button */}
+            <button
+              onClick={() => window.location.reload()}
+              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              title="Recarregar página"
+            >
+              <RefreshCw className="w-4.5 h-4.5" />
+            </button>
 
             {/* Theme toggle */}
             {toggleTheme && (
