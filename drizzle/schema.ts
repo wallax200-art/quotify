@@ -21,6 +21,12 @@ export const users = mysqlTable("users", {
   storeName: varchar("storeName", { length: 255 }),
   /** WhatsApp phone number */
   phone: varchar("phone", { length: 32 }),
+  /** Date when access was granted by admin */
+  accessGrantedAt: timestamp("accessGrantedAt"),
+  /** Number of days of access granted (e.g., 30 for monthly) */
+  accessDays: int("accessDays").default(0).notNull(),
+  /** Date when access expires (computed: accessGrantedAt + accessDays) */
+  accessExpiresAt: timestamp("accessExpiresAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

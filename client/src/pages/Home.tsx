@@ -64,7 +64,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>("produto");
   const [showSummary, setShowSummary] = useState(false);
 
-  // Redirect non-active users to landing
+  // Redirect non-active users or expired access to landing
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       setLocation("/");
@@ -73,8 +73,11 @@ export default function Home() {
     if (!loading && user) {
       const status = (user as any).status;
       const role = (user as any).role;
+      const accessExpired = (user as any).accessExpired;
       if (status !== "active" && role !== "admin") {
         setLocation("/");
+      } else if (accessExpired && role !== "admin") {
+        setLocation("/?expired=1");
       }
     }
   }, [loading, isAuthenticated, user, setLocation]);

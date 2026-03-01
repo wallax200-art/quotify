@@ -37,3 +37,11 @@
 - [x] Implementar suporte PWA (manifesto, service worker, ícones, meta tags, instalável no iPhone/Android)
 - [x] Bug: site publicado redireciona para login Manus OAuth antes de mostrar a landing page (resolvido via visibilidade pública)
 - [x] Configurar Open Graph meta tags com logo para pré-visualização bonita no WhatsApp/redes sociais
+- [x] Adicionar campos de controlo de acesso ao schema (accessGrantedAt, accessDays, accessExpiresAt)
+- [x] Criar lógica no servidor para verificar expiração de acesso
+- [x] Mostrar tempo de uso e dias restantes no painel Admin
+- [x] Permitir admin definir número de dias de acesso por utilizador
+- [x] Bloquear automaticamente utilizadores com acesso expirado
+- [x] Tabela appSettings para configurações globais (WhatsApp admin, etc.)
+- [x] Mensagem de "acesso expirado" na landing page com botão WhatsApp para renovar
+- [x] 19 testes de controlo de acesso (isAccessExpired, auth.me, admin procedures)

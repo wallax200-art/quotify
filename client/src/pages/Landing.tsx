@@ -89,9 +89,18 @@ export default function Landing() {
   const loginMutation = trpc.auth.login.useMutation();
   const registerMutation = trpc.auth.register.useMutation();
 
-  // Redirect authenticated active users to dashboard
+  // Check if user was redirected due to expired access
+  const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const isExpiredRedirect = urlParams?.get('expired') === '1';
+
+  // Redirect authenticated active users to dashboard (unless access expired)
   useEffect(() => {
     if (!loading && isAuthenticated && user) {
+      const accessExpired = (user as any).accessExpired;
+      if (accessExpired && (user as any).role !== 'admin') {
+        // Don't redirect - show expired message
+        return;
+      }
       if ((user as any).status === "active" || (user as any).role === "admin") {
         setLocation("/dashboard");
       }
@@ -252,6 +261,25 @@ export default function Landing() {
                 <Button variant="outline" className="border-red-300 text-red-700 hover:bg-red-50 w-full">
                   <MessageCircle className="w-4 h-4 mr-2" />
                   Falar com o suporte
+                </Button>
+              </a>
+            </div>
+          )}
+
+          {/* Access expired message */}
+          {isAuthenticated && (user as any)?.accessExpired && (user as any)?.role !== 'admin' && (
+            <div className="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-xl p-5 text-center mb-6">
+              <div className="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center mx-auto mb-3">
+                <Clock className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+              </div>
+              <h3 className="font-semibold text-orange-900 dark:text-orange-200 mb-1">Acesso expirado</h3>
+              <p className="text-sm text-orange-700 dark:text-orange-400 mb-4">
+                Seu período de acesso terminou. Entre em contato para renovar sua assinatura.
+              </p>
+              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white w-full">
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Renovar pelo WhatsApp
                 </Button>
               </a>
             </div>
@@ -580,6 +608,25 @@ export default function Landing() {
               O sistema inteligente de orçamento para lojistas de iPhone.
             </p>
           </div>
+
+          {/* Access expired banner */}
+          {isAuthenticated && (user as any)?.accessExpired && (user as any)?.role !== 'admin' && (
+            <div className="max-w-lg mx-auto bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-xl p-5 text-center mb-8">
+              <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center mx-auto mb-2">
+                <Clock className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+              </div>
+              <h3 className="font-semibold text-orange-900 dark:text-orange-200 mb-1 text-sm">Seu acesso expirou</h3>
+              <p className="text-xs text-orange-700 dark:text-orange-400 mb-3">
+                Entre em contato para renovar sua assinatura.
+              </p>
+              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                  <MessageCircle className="w-3.5 h-3.5 mr-1" />
+                  Renovar pelo WhatsApp
+                </Button>
+              </a>
+            </div>
+          )}
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16">

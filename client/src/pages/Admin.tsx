@@ -1,6 +1,6 @@
 /**
  * Admin — Painel de administração do Quotify
- * Gerenciar usuários (aprovar/bloquear/desativar) e configurações do app
+ * Gerenciar usuários (aprovar/bloquear/desativar), controlo de acesso mensal e configurações do app
  */
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -26,6 +26,10 @@ import {
   MessageCircle,
   Sun,
   Moon,
+  CalendarDays,
+  Timer,
+  CalendarClock,
+  KeyRound,
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { Link } from "wouter";
@@ -33,6 +37,31 @@ import { toast } from "sonner";
 import { useTheme } from "@/contexts/ThemeContext";
 
 type FilterStatus = "all" | "pending" | "active" | "blocked";
+
+/** Compute days elapsed since a date */
+function daysSince(date: string | Date): number {
+  const d = new Date(date);
+  const now = new Date();
+  return Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+/** Compute days remaining until expiry */
+function daysRemaining(expiresAt: string | Date | null): number | null {
+  if (!expiresAt) return null;
+  const d = new Date(expiresAt);
+  const now = new Date();
+  const diff = Math.ceil((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  return diff;
+}
+
+/** Format a date to pt-BR locale */
+function formatDate(date: string | Date): string {
+  return new Date(date).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
 
 export default function Admin() {
   const { user } = useAuth();
@@ -42,6 +71,10 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState<"users" | "settings">("users");
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [whatsappEdited, setWhatsappEdited] = useState(false);
+
+  // Access grant modal state
+  const [grantUserId, setGrantUserId] = useState<number | null>(null);
+  const [grantDays, setGrantDays] = useState("30");
 
   const utils = trpc.useUtils();
   const { data: userList, isLoading } = trpc.admin.listUsers.useQuery();
@@ -67,6 +100,24 @@ export default function Admin() {
       toast.success("Papel do usuário atualizado");
     },
     onError: () => toast.error("Erro ao atualizar papel"),
+  });
+
+  const grantAccess = trpc.admin.grantAccess.useMutation({
+    onSuccess: () => {
+      utils.admin.listUsers.invalidate();
+      toast.success("Acesso liberado com sucesso");
+      setGrantUserId(null);
+      setGrantDays("30");
+    },
+    onError: () => toast.error("Erro ao liberar acesso"),
+  });
+
+  const updateAccessDays = trpc.admin.updateAccessDays.useMutation({
+    onSuccess: () => {
+      utils.admin.listUsers.invalidate();
+      toast.success("Dias de acesso atualizados");
+    },
+    onError: () => toast.error("Erro ao atualizar dias"),
   });
 
   const updateSetting = trpc.admin.updateSetting.useMutation({
@@ -111,21 +162,21 @@ export default function Admin() {
     switch (status) {
       case "active":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
             <CheckCircle2 className="w-3 h-3" />
             Ativo
           </span>
         );
       case "pending":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
             <AlertCircle className="w-3 h-3" />
             Pendente
           </span>
         );
       case "blocked":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
             <XCircle className="w-3 h-3" />
             Bloqueado
           </span>
@@ -145,6 +196,45 @@ export default function Admin() {
       );
     }
     return null;
+  };
+
+  const getAccessInfo = (u: any) => {
+    if (u.role === "admin") {
+      return (
+        <span className="inline-flex items-center gap-1 text-xs text-primary font-medium">
+          <ShieldCheck className="w-3 h-3" />
+          Acesso ilimitado
+        </span>
+      );
+    }
+
+    if (!u.accessGrantedAt || u.accessDays === 0) {
+      return (
+        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+          <KeyRound className="w-3 h-3" />
+          Sem acesso definido
+        </span>
+      );
+    }
+
+    const remaining = daysRemaining(u.accessExpiresAt);
+    const isExpired = remaining !== null && remaining <= 0;
+
+    if (isExpired) {
+      return (
+        <span className="inline-flex items-center gap-1 text-xs text-red-600 dark:text-red-400 font-medium">
+          <XCircle className="w-3 h-3" />
+          Expirado há {Math.abs(remaining!)} dia{Math.abs(remaining!) !== 1 ? "s" : ""}
+        </span>
+      );
+    }
+
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+        <CalendarClock className="w-3 h-3" />
+        {remaining} dia{remaining !== 1 ? "s" : ""} restante{remaining !== 1 ? "s" : ""}
+      </span>
+    );
   };
 
   // Check if current user is admin
@@ -268,98 +358,183 @@ export default function Admin() {
               </div>
             ) : (
               <div className="space-y-3">
-                {filteredUsers.map((u: any) => (
-                  <div
-                    key={u.id}
-                    className="bg-card rounded-xl border border-border p-4 sm:p-5 hover:shadow-sm transition-all"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-                      {/* User info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <h3 className="font-semibold text-foreground truncate">{u.name || "Sem nome"}</h3>
-                          {getRoleBadge(u.role)}
-                          {getStatusBadge(u.status)}
-                        </div>
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                          {u.email && (
-                            <span className="flex items-center gap-1">
-                              <Mail className="w-3 h-3" />
-                              {u.email}
-                            </span>
-                          )}
-                          {u.storeName && (
-                            <span className="flex items-center gap-1">
-                              <Store className="w-3 h-3" />
-                              {u.storeName}
-                            </span>
-                          )}
-                          {u.phone && (
-                            <span className="flex items-center gap-1">
-                              <Phone className="w-3 h-3" />
-                              {u.phone}
-                            </span>
-                          )}
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {new Date(u.createdAt).toLocaleDateString("pt-BR")}
-                          </span>
-                        </div>
-                      </div>
+                {filteredUsers.map((u: any) => {
+                  const memberDays = daysSince(u.createdAt);
+                  const remaining = daysRemaining(u.accessExpiresAt);
+                  const isExpired = remaining !== null && remaining <= 0;
+                  const isGrantOpen = grantUserId === u.id;
 
-                      {/* Actions */}
-                      <div className="flex items-center gap-2 shrink-0">
-                        {u.status !== "active" && (
-                          <Button
-                            size="sm"
-                            onClick={() => updateStatus.mutate({ userId: u.id, status: "active" })}
-                            disabled={updateStatus.isPending}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs"
-                          >
-                            <UserCheck className="w-3.5 h-3.5 mr-1" />
-                            Ativar
-                          </Button>
-                        )}
-                        {u.status !== "blocked" && u.openId !== user?.openId && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateStatus.mutate({ userId: u.id, status: "blocked" })}
-                            disabled={updateStatus.isPending}
-                            className="text-red-600 border-red-200 hover:bg-red-50 text-xs"
-                          >
-                            <UserX className="w-3.5 h-3.5 mr-1" />
-                            Bloquear
-                          </Button>
-                        )}
-                        {u.status === "active" && u.status !== "pending" && u.openId !== user?.openId && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateStatus.mutate({ userId: u.id, status: "pending" })}
-                            disabled={updateStatus.isPending}
-                            className="text-amber-600 border-amber-200 hover:bg-amber-50 text-xs"
-                          >
-                            <Clock className="w-3.5 h-3.5 mr-1" />
-                            Suspender
-                          </Button>
-                        )}
-                        {u.role !== "admin" && u.openId !== user?.openId && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => updateRole.mutate({ userId: u.id, role: "admin" })}
-                            disabled={updateRole.isPending}
-                            className="text-xs text-muted-foreground"
-                          >
-                            <ShieldCheck className="w-3.5 h-3.5 mr-1" />
-                            Tornar Admin
-                          </Button>
-                        )}
+                  return (
+                    <div
+                      key={u.id}
+                      className={`bg-card rounded-xl border p-4 sm:p-5 transition-all ${
+                        isExpired && u.role !== "admin"
+                          ? "border-red-500/30 bg-red-500/5"
+                          : "border-border hover:shadow-sm"
+                      }`}
+                    >
+                      <div className="flex flex-col gap-3">
+                        {/* Top row: user info + status */}
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                              <h3 className="font-semibold text-foreground truncate">{u.name || "Sem nome"}</h3>
+                              {getRoleBadge(u.role)}
+                              {getStatusBadge(u.status)}
+                            </div>
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                              {u.email && (
+                                <span className="flex items-center gap-1">
+                                  <Mail className="w-3 h-3" />
+                                  {u.email}
+                                </span>
+                              )}
+                              {u.storeName && (
+                                <span className="flex items-center gap-1">
+                                  <Store className="w-3 h-3" />
+                                  {u.storeName}
+                                </span>
+                              )}
+                              {u.phone && (
+                                <span className="flex items-center gap-1">
+                                  <Phone className="w-3 h-3" />
+                                  {u.phone}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Status actions */}
+                          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                            {u.status !== "active" && (
+                              <Button
+                                size="sm"
+                                onClick={() => updateStatus.mutate({ userId: u.id, status: "active" })}
+                                disabled={updateStatus.isPending}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs"
+                              >
+                                <UserCheck className="w-3.5 h-3.5 mr-1" />
+                                Ativar
+                              </Button>
+                            )}
+                            {u.status !== "blocked" && u.openId !== user?.openId && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => updateStatus.mutate({ userId: u.id, status: "blocked" })}
+                                disabled={updateStatus.isPending}
+                                className="text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-500/10 text-xs"
+                              >
+                                <UserX className="w-3.5 h-3.5 mr-1" />
+                                Bloquear
+                              </Button>
+                            )}
+                            {u.role !== "admin" && u.openId !== user?.openId && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => updateRole.mutate({ userId: u.id, role: "admin" })}
+                                disabled={updateRole.isPending}
+                                className="text-xs text-muted-foreground"
+                              >
+                                <ShieldCheck className="w-3.5 h-3.5 mr-1" />
+                                Tornar Admin
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Access control row */}
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-3 border-t border-border/50">
+                          {/* Time info */}
+                          <div className="flex flex-wrap gap-x-5 gap-y-2 flex-1">
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <Clock className="w-3.5 h-3.5" />
+                              <span>Cadastro: <strong className="text-foreground">{formatDate(u.createdAt)}</strong></span>
+                              <span className="text-muted-foreground/60">({memberDays} dia{memberDays !== 1 ? "s" : ""})</span>
+                            </div>
+                            {u.accessGrantedAt && (
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <CalendarDays className="w-3.5 h-3.5" />
+                                <span>Liberado: <strong className="text-foreground">{formatDate(u.accessGrantedAt)}</strong></span>
+                                <span className="text-muted-foreground/60">({u.accessDays} dias)</span>
+                              </div>
+                            )}
+                            <div>{getAccessInfo(u)}</div>
+                          </div>
+
+                          {/* Grant/Update access button */}
+                          {u.role !== "admin" && (
+                            <div className="shrink-0">
+                              {!isGrantOpen ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setGrantUserId(u.id);
+                                    setGrantDays(u.accessDays > 0 ? String(u.accessDays) : "30");
+                                  }}
+                                  className="text-xs border-primary/30 text-primary hover:bg-primary/10"
+                                >
+                                  <KeyRound className="w-3.5 h-3.5 mr-1" />
+                                  {u.accessGrantedAt ? "Alterar Acesso" : "Liberar Acesso"}
+                                </Button>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-1.5 bg-secondary rounded-lg px-2 py-1">
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      max="365"
+                                      value={grantDays}
+                                      onChange={(e) => setGrantDays(e.target.value)}
+                                      className="w-16 bg-transparent text-sm font-mono text-foreground focus:outline-none text-center"
+                                    />
+                                    <span className="text-xs text-muted-foreground">dias</span>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => {
+                                      const days = parseInt(grantDays);
+                                      if (isNaN(days) || days < 1 || days > 365) {
+                                        toast.error("Informe entre 1 e 365 dias");
+                                        return;
+                                      }
+                                      if (u.accessGrantedAt) {
+                                        updateAccessDays.mutate({ userId: u.id, days });
+                                      } else {
+                                        grantAccess.mutate({ userId: u.id, days });
+                                      }
+                                    }}
+                                    disabled={grantAccess.isPending || updateAccessDays.isPending}
+                                    className="text-xs bg-primary hover:bg-primary/90"
+                                  >
+                                    {(grantAccess.isPending || updateAccessDays.isPending) ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                      <>
+                                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                                        Confirmar
+                                      </>
+                                    )}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setGrantUserId(null)}
+                                    className="text-xs text-muted-foreground"
+                                  >
+                                    Cancelar
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </>
@@ -408,6 +583,23 @@ export default function Admin() {
           </div>
         )}
       </div>
+
+      {/* Grant access quick presets info */}
+      {activeTab === "users" && (
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-8">
+          <div className="bg-card/50 rounded-xl border border-border/50 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Timer className="w-4 h-4 text-primary" />
+              <h4 className="text-xs font-semibold text-foreground">Controlo de Acesso</h4>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Clique em <strong>"Liberar Acesso"</strong> para definir quantos dias cada vendedor pode usar o sistema. 
+              Quando o prazo expirar, o acesso será bloqueado automaticamente. 
+              Use <strong>"Alterar Acesso"</strong> para renovar ou ajustar os dias a qualquer momento.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

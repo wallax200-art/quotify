@@ -266,6 +266,55 @@ export async function seedAdminUser(email: string, password: string, name: strin
   console.log(`[Seed] Admin user ${email} created successfully`);
 }
 
+// ===== Access Control Helpers =====
+
+/**
+ * Grant access to a user for a given number of days.
+ * Sets accessGrantedAt to now, accessDays, and computes accessExpiresAt.
+ * Also activates the user if they are pending.
+ */
+export async function grantUserAccess(userId: number, days: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+  await db.update(users).set({
+    accessGrantedAt: now,
+    accessDays: days,
+    accessExpiresAt: expiresAt,
+    status: "active",
+  }).where(eq(users.id, userId));
+}
+
+/**
+ * Update the number of access days for a user.
+ * Recomputes accessExpiresAt based on the original accessGrantedAt.
+ */
+export async function updateUserAccessDays(userId: number, days: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const user = await getUserById(userId);
+  if (!user) return;
+  const grantedAt = user.accessGrantedAt || new Date();
+  const expiresAt = new Date(grantedAt.getTime() + days * 24 * 60 * 60 * 1000);
+  await db.update(users).set({
+    accessGrantedAt: grantedAt,
+    accessDays: days,
+    accessExpiresAt: expiresAt,
+  }).where(eq(users.id, userId));
+}
+
+/**
+ * Check if a user's access has expired.
+ * Returns true if expired, false if still valid or no expiry set.
+ * Admin users never expire.
+ */
+export function isAccessExpired(user: { role: string; accessExpiresAt: Date | null; accessDays: number }): boolean {
+  if (user.role === "admin") return false;
+  if (!user.accessExpiresAt || user.accessDays === 0) return false;
+  return new Date() > new Date(user.accessExpiresAt);
+}
+
 // App Settings helpers
 export async function getSetting(key: string): Promise<string | null> {
   const db = await getDb();

@@ -2,7 +2,7 @@ import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
-import { getAllUsers, updateUserStatus, updateUserRole, updateUserProfile, getSetting, setSetting, getAllSettings, registerUser, loginUser, seedAdminUser } from "./db";
+import { getAllUsers, updateUserStatus, updateUserRole, updateUserProfile, getSetting, setSetting, getAllSettings, registerUser, loginUser, seedAdminUser, grantUserAccess, updateUserAccessDays, isAccessExpired } from "./db";
 import { sdk } from "./_core/sdk";
 import { z } from "zod";
 
@@ -23,7 +23,9 @@ export const appRouter = router({
     me: publicProcedure.query(opts => {
       if (!opts.ctx.user) return null;
       const { password, ...safeUser } = opts.ctx.user as any;
-      return safeUser;
+      // Add computed access expiry info
+      const accessExpired = isAccessExpired(opts.ctx.user);
+      return { ...safeUser, accessExpired };
     }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
@@ -135,6 +137,28 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         await updateUserRole(input.userId, input.role);
+        return { success: true };
+      }),
+
+    // Grant access to a user for N days (also activates the user)
+    grantAccess: adminProcedure
+      .input(z.object({
+        userId: z.number(),
+        days: z.number().min(1, "Mínimo 1 dia").max(365, "Máximo 365 dias"),
+      }))
+      .mutation(async ({ input }) => {
+        await grantUserAccess(input.userId, input.days);
+        return { success: true };
+      }),
+
+    // Update access days for a user (recomputes expiry from original grant date)
+    updateAccessDays: adminProcedure
+      .input(z.object({
+        userId: z.number(),
+        days: z.number().min(1, "Mínimo 1 dia").max(365, "Máximo 365 dias"),
+      }))
+      .mutation(async ({ input }) => {
+        await updateUserAccessDays(input.userId, input.days);
         return { success: true };
       }),
 
