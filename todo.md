@@ -51,3 +51,4 @@
 - [x] Botão de excluir usuário no painel Admin (com confirmação)
 - [x] Exportar lista de contatos em PDF para remarketing (nome, loja, telefone, email)
 - [x] Adicionar seção de depoimentos na landing page com 6 cards (visual SaaS premium, grid responsivo)
+- [x] Limpar/remover os 3 textos soltos abaixo do botão WhatsApp na landing page (visual feio, espaço excessivo)
