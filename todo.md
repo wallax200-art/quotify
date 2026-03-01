@@ -56,3 +56,4 @@
 - [x] Adicionar botão de recarregar/refresh no header do dashboard para os usuários atualizarem a página
 - [x] Abas de produtos devem iniciar fechadas (colapsadas) por padrão — usuário clica para expandir
 - [x] Criar página de Ajuda/Tutorial ensinando a configurar o sistema (preços, taxas, condições de troca, texto do orçamento, nome da loja)
+- [x] Remover botão "Resumo" do header mobile que fica cortado

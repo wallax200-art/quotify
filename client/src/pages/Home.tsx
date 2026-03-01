@@ -180,19 +180,6 @@ export default function Home() {
               <LogOut className="w-4.5 h-4.5" />
             </button>
 
-            {/* Botão resumo mobile */}
-            <button
-              onClick={() => setShowSummary(!showSummary)}
-              className="lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold shadow-sm active:scale-95 transition-transform"
-            >
-              {showSummary ? <X className="w-3.5 h-3.5" /> : <Menu className="w-3.5 h-3.5" />}
-              {showSummary ? "Fechar" : "Resumo"}
-              {hasSelection && !showSummary && (
-                <span className="ml-1 px-1.5 py-0.5 rounded bg-white/20 text-[10px]">
-                  {formatCurrency(calculations.amountToPay)}
-                </span>
-              )}
-            </button>
           </div>
         </div>
       </header>
