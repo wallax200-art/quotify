@@ -23,6 +23,7 @@ const KEYS = {
   rates: `tiosam-rates-${DATA_VERSION}`,
   categories: `tiosam-categories-${DATA_VERSION}`,
   closingText: `tiosam-closing-${DATA_VERSION}`,
+  storeName: `tiosam-storename-${DATA_VERSION}`,
   dataVersion: "tiosam-data-version",
 } as const;
 
@@ -42,6 +43,7 @@ interface ConfigState {
   installmentRates: InstallmentRate[];
   productCategories: ProductCategory[];
   closingText: string;
+  storeName: string;
 }
 
 interface ConfigContextType extends ConfigState {
@@ -67,6 +69,8 @@ interface ConfigContextType extends ConfigState {
   removeCategory: (id: string) => void;
   // Closing text
   setClosingText: (text: string) => void;
+  // Store name
+  setStoreName: (name: string) => void;
   // Reset
   resetAll: () => void;
   resetProducts: () => void;
@@ -180,6 +184,9 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   const [closingText, setClosingTextState] = useState<string>(() =>
     loadFromStorage(KEYS.closingText, DEFAULT_ORCAMENTO_CLOSING)
   );
+  const [storeName, setStoreNameState] = useState<string>(() =>
+    loadFromStorage(KEYS.storeName, "")
+  );
 
   // Auto-save on changes
   useEffect(() => { saveToStorage(KEYS.products, products); }, [products]);
@@ -188,6 +195,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   useEffect(() => { saveToStorage(KEYS.rates, installmentRates); }, [installmentRates]);
   useEffect(() => { saveToStorage(KEYS.categories, productCategories); }, [productCategories]);
   useEffect(() => { saveToStorage(KEYS.closingText, closingText); }, [closingText]);
+  useEffect(() => { saveToStorage(KEYS.storeName, storeName); }, [storeName]);
 
   // --- Products ---
   const addProduct = useCallback((product: Product) => {
@@ -261,6 +269,11 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     setClosingTextState(text);
   }, []);
 
+  // --- Store name ---
+  const setStoreName = useCallback((name: string) => {
+    setStoreNameState(name);
+  }, []);
+
   // --- Resets ---
   const resetAll = useCallback(() => {
     setProducts(DEFAULT_PRODUCTS);
@@ -269,6 +282,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     setInstallmentRates(DEFAULT_INSTALLMENT_RATES);
     setProductCategories(DEFAULT_PRODUCT_CATEGORIES);
     setClosingTextState(DEFAULT_ORCAMENTO_CLOSING);
+    setStoreNameState("");
     Object.values(KEYS).forEach(k => localStorage.removeItem(k));
   }, []);
 
@@ -299,6 +313,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     installmentRates,
     productCategories,
     closingText,
+    storeName,
     addProduct,
     updateProduct,
     removeProduct,
@@ -315,6 +330,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     updateCategory,
     removeCategory,
     setClosingText,
+    setStoreName,
     resetAll,
     resetProducts,
     resetUpgradeProducts,

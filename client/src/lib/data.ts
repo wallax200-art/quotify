@@ -694,10 +694,12 @@ export function gerarOrcamentoTexto(
   amountToPay: number,
   rates: InstallmentRate[],
   closingText: string,
+  storeName?: string,
 ): string {
   const lines: string[] = [];
 
-  lines.push("📱 Orçamento – Quotify");
+  const displayName = storeName?.trim() || "Quotify";
+  lines.push(`📱 Orçamento – ${displayName}`);
   lines.push("");
   lines.push(`📲 ${product.name}`);
   const details: string[] = product.storage !== "-" ? [product.storage] : [];

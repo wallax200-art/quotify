@@ -27,6 +27,7 @@ import {
   ChevronUp,
   Sun,
   Moon,
+  Store,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -753,6 +754,23 @@ export default function Settings() {
               {/* ==================== TEXTO DO ORÇAMENTO ==================== */}
               {activeTab === "texto" && (
                 <div className="space-y-4">
+                  {/* Nome da Loja */}
+                  <div className="bg-card rounded-xl border border-border p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Store className="w-4 h-4 text-primary" />
+                      <label className="text-sm font-semibold text-foreground">Nome da Loja</label>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mb-2">Este nome aparece no cabeçalho do orçamento gerado ("📱 Orçamento – Sua Loja"). Se vazio, usa "Quotify".</p>
+                    <input
+                      type="text"
+                      value={config.storeName}
+                      onChange={(e) => config.setStoreName(e.target.value)}
+                      placeholder="Ex: Tio Sam Imports"
+                      className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm"
+                    />
+                  </div>
+
+                  {/* Texto de Fechamento */}
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-2 block">Texto de Fechamento do Orçamento</label>
                     <p className="text-[10px] text-muted-foreground mb-2">Este texto aparece no final do orçamento gerado para o cliente.</p>
@@ -767,7 +785,7 @@ export default function Settings() {
                   <div className="bg-secondary/50 rounded-lg p-4 border border-border">
                     <p className="text-xs font-medium text-foreground mb-2">Pré-visualização do orçamento:</p>
                     <div className="bg-gray-900 text-gray-100 rounded-lg p-4 font-mono text-xs space-y-1 whitespace-pre-wrap">
-                      {"📱 Orçamento – Quotify\n\n📲 iPhone 16 Pro Max\n256GB • Titânio Natural • Lacrado\n💰 Valor do aparelho: `R$ 9.499,00`\n\nÀ vista no PIX: `R$ 9.499,00`\n\n💳 8x de `R$ 1.313,90`\n💳 10x de `R$ 1.064,43`\n💳 12x de `R$ 898,30`\n💳 18x de `R$ 635,81`\n\n" + config.closingText}
+                      {`📱 Orçamento – ${config.storeName?.trim() || "Quotify"}\n\n📲 iPhone 16 Pro Max\n256GB • Titânio Natural • Lacrado\n💰 Valor do aparelho: \`R$ 9.499,00\`\n\nÀ vista no PIX: \`R$ 9.499,00\`\n\n💳 8x de \`R$ 1.313,90\`\n💳 10x de \`R$ 1.064,43\`\n💳 12x de \`R$ 898,30\`\n💳 18x de \`R$ 635,81\`\n\n${config.closingText}`}
                     </div>
                   </div>
                 </div>

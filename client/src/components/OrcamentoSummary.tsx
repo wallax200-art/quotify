@@ -28,6 +28,7 @@ interface OrcamentoSummaryProps {
   selectedInstallments: number;
   installmentRates: InstallmentRate[];
   closingText: string;
+  storeName?: string;
   onReset: () => void;
 }
 
@@ -38,6 +39,7 @@ export default function OrcamentoSummary({
   selectedInstallments,
   installmentRates,
   closingText,
+  storeName,
   onReset,
 }: OrcamentoSummaryProps) {
   const [copied, setCopied] = useState(false);
@@ -52,6 +54,7 @@ export default function OrcamentoSummary({
       calculations.amountToPay,
       installmentRates,
       closingText,
+      storeName,
     );
     navigator.clipboard.writeText(texto).then(() => {
       setCopied(true);
@@ -67,6 +70,7 @@ export default function OrcamentoSummary({
       calculations.amountToPay,
       installmentRates,
       closingText,
+      storeName,
     );
     const encoded = encodeURIComponent(texto);
     window.open(`https://wa.me/?text=${encoded}`, "_blank");
@@ -259,6 +263,7 @@ export default function OrcamentoSummary({
                       calculations.amountToPay,
                       installmentRates,
                       closingText,
+                      storeName,
                     )}
                   </div>
                   <div className="flex gap-2">

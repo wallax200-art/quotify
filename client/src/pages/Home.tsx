@@ -302,6 +302,7 @@ export default function Home() {
                   selectedInstallments={state.selectedInstallments}
                   installmentRates={config.installmentRates}
                   closingText={config.closingText}
+                  storeName={config.storeName}
                   onReset={resetAll}
                 />
               </div>
@@ -326,6 +327,7 @@ export default function Home() {
               selectedInstallments={state.selectedInstallments}
               installmentRates={config.installmentRates}
               closingText={config.closingText}
+              storeName={config.storeName}
               onReset={resetAll}
             />
           </div>

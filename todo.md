@@ -47,3 +47,4 @@
 - [x] 19 testes de controlo de acesso (isAccessExpired, auth.me, admin procedures)
 - [x] Bug: botão "Falar com o administrador" após cadastro abre número WhatsApp inválido — corrigido para +1 (656) 242-6925
 - [x] Bug: TODOS os botões de WhatsApp do app devem redirecionar corretamente para +1 (656) 242-6925
+- [x] Adicionar campo "Nome da Loja" nas configurações do usuário para personalizar o texto do orçamento gerado
