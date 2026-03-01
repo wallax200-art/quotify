@@ -20,6 +20,9 @@ import {
   Moon,
   Calculator,
   Settings,
+  Smartphone,
+  Share,
+  MoreVertical,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -231,6 +234,43 @@ const HELP_SECTIONS: HelpSection[] = [
         title: "Visualize o resultado",
         description:
           "A pré-visualização na parte inferior mostra exatamente como o texto do orçamento ficará quando enviado ao cliente. Revise antes de salvar.",
+      },
+    ],
+  },
+  {
+    id: "instalar",
+    icon: Smartphone,
+    title: "Instalar como Aplicativo no Celular",
+    subtitle: "Como adicionar o Quotify à tela inicial do seu celular",
+    steps: [
+      {
+        title: "Por que instalar?",
+        description:
+          "Ao adicionar o Quotify à tela inicial do celular, ele funciona como um aplicativo nativo — abre em tela cheia, sem barra de endereço, e fica acessível com um toque. Ideal para usar no balcão da loja.",
+        tip: "O app funciona normalmente pelo navegador também, mas a experiência é melhor como aplicativo.",
+      },
+      {
+        title: "No iPhone (Safari)",
+        description:
+          "1. Abra o Quotify no Safari (obrigatório — não funciona no Chrome do iPhone).\n2. Toque no ícone de compartilhar (quadrado com seta para cima ⬆️) na barra inferior.\n3. Role para baixo e toque em \"Adicionar à Tela de Início\".\n4. Confirme o nome e toque em \"Adicionar\".\n5. Pronto! O ícone do Quotify aparecerá na sua tela inicial.",
+        tip: "No iPhone, APENAS o Safari permite adicionar sites à tela inicial. Se estiver usando Chrome ou outro navegador, copie o link e abra no Safari.",
+      },
+      {
+        title: "No Android (Chrome)",
+        description:
+          "1. Abra o Quotify no Google Chrome.\n2. Toque nos três pontinhos (⋮) no canto superior direito.\n3. Toque em \"Adicionar à tela inicial\" ou \"Instalar aplicativo\".\n4. Confirme tocando em \"Adicionar\" ou \"Instalar\".\n5. Pronto! O ícone do Quotify aparecerá na sua tela inicial.",
+        tip: "Em alguns celulares Android, o Chrome pode mostrar automaticamente um banner \"Instalar aplicativo\" na parte inferior da tela.",
+      },
+      {
+        title: "No Android (Samsung Internet)",
+        description:
+          "1. Abra o Quotify no Samsung Internet.\n2. Toque no menu (☰) ou nos três traços na parte inferior.\n3. Toque em \"Adicionar à tela inicial\".\n4. Confirme e pronto!",
+      },
+      {
+        title: "Dica: compartilhe com sua equipe",
+        description:
+          "Envie o link do Quotify (quantify.manus.space) pelo WhatsApp para seus vendedores e peça para cada um instalar como aplicativo no celular. Assim todos terão acesso rápido no balcão.",
+        tip: "Cada vendedor precisa criar sua própria conta e aguardar a aprovação do administrador.",
       },
     ],
   },
