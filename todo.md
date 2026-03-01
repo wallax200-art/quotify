@@ -50,3 +50,4 @@
 - [x] Adicionar campo "Nome da Loja" nas configurações do usuário para personalizar o texto do orçamento gerado
 - [x] Botão de excluir usuário no painel Admin (com confirmação)
 - [x] Exportar lista de contatos em PDF para remarketing (nome, loja, telefone, email)
+- [x] Adicionar seção de depoimentos na landing page com 6 cards (visual SaaS premium, grid responsivo)

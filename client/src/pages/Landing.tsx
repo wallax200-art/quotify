@@ -23,6 +23,7 @@ import {
   ArrowLeft,
   Sun,
   Moon,
+  Quote,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
@@ -48,6 +49,57 @@ const STEPS = [
     icon: MessageCircle,
     title: "Envie pelo WhatsApp",
     description: "Gere o orçamento formatado com todos os detalhes e envie direto ao cliente em um clique",
+  },
+];
+
+const TESTIMONIALS = [
+  {
+    name: "Rafael M.",
+    role: "Dono de Loja",
+    city: "SP",
+    quote: "Eu perdia muito tempo fazendo conta manual. Hoje faço orçamento em menos de 10 segundos.",
+    initials: "RM",
+    color: "bg-blue-500",
+  },
+  {
+    name: "Lucas T.",
+    role: "Gerente de Loja",
+    city: "RJ",
+    quote: "O que mais gostei foi a padronização. Agora todos os vendedores usam o mesmo modelo.",
+    initials: "LT",
+    color: "bg-emerald-500",
+  },
+  {
+    name: "Bruno A.",
+    role: "Lojista",
+    city: "MG",
+    quote: "O cálculo de upgrade ficou muito mais rápido. Antes eu precisava parar tudo pra fazer conta.",
+    initials: "BA",
+    color: "bg-violet-500",
+  },
+  {
+    name: "Carlos S.",
+    role: "Loja Multimarcas",
+    city: "BA",
+    quote: "Economiza muito tempo no balcão.",
+    initials: "CS",
+    color: "bg-amber-500",
+  },
+  {
+    name: "Daniel R.",
+    role: "Dono de Loja",
+    city: "PR",
+    quote: "Diminuí erro de cálculo e parei de perder margem.",
+    initials: "DR",
+    color: "bg-rose-500",
+  },
+  {
+    name: "Felipe L.",
+    role: "Vendedor",
+    city: "SC",
+    quote: "Não preciso mais perguntar quanto avaliar o usado.",
+    initials: "FL",
+    color: "bg-cyan-500",
   },
 ];
 
@@ -801,6 +853,53 @@ export default function Landing() {
             <p className="text-lg sm:text-xl font-semibold text-foreground/80 italic">
               "Calcule a troca, aplique as taxas e feche a venda — tudo em um só lugar."
             </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Testimonials Section */}
+      <div className="relative py-16 sm:py-24 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-primary/[0.02] to-background" />
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-3">
+              Quem já testou, aprovou.
+            </h2>
+            <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto">
+              Lojistas que vivem o dia a dia do balcão.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+            {TESTIMONIALS.map((testimonial) => (
+              <div
+                key={testimonial.name}
+                className="group relative bg-card rounded-2xl border border-border/50 p-6 sm:p-7 transition-all duration-300 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5"
+              >
+                {/* Quote icon */}
+                <div className="absolute top-5 right-5 opacity-[0.07]">
+                  <Quote className="w-10 h-10 text-foreground" />
+                </div>
+
+                {/* Quote text */}
+                <p className="text-sm sm:text-[15px] text-foreground/90 leading-relaxed mb-6 relative z-10 italic">
+                  “{testimonial.quote}”
+                </p>
+
+                {/* Author info */}
+                <div className="flex items-center gap-3 pt-4 border-t border-border/50">
+                  <div className={`w-10 h-10 rounded-full ${testimonial.color} flex items-center justify-center shrink-0 shadow-sm`}>
+                    <span className="text-white text-xs font-bold">{testimonial.initials}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">{testimonial.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {testimonial.role} &middot; {testimonial.city}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
