@@ -4,6 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
 import { getAllUsers, updateUserStatus, updateUserRole, updateUserProfile, getSetting, setSetting, getAllSettings, registerUser, loginUser, seedAdminUser, grantUserAccess, updateUserAccessDays, isAccessExpired, deleteUser } from "./db";
 import { sdk } from "./_core/sdk";
+import { notifyOwner } from "./_core/notification";
 import { z } from "zod";
 
 // Seed admin user on startup
@@ -53,6 +54,19 @@ export const appRouter = router({
 
         if (!result.success) {
           return { success: false, error: result.error };
+        }
+
+        // Notificar admin sobre novo cadastro
+        try {
+          const storePart = input.storeName?.trim() ? `\n🏪 Loja: ${input.storeName.trim()}` : "";
+          const phonePart = input.phone?.trim() ? `\n📞 Telefone: ${input.phone.trim()}` : "";
+          await notifyOwner({
+            title: `🆕 Novo vendedor cadastrado: ${input.name.trim()}`,
+            content: `Um novo vendedor se cadastrou e aguarda aprovação.\n\n👤 Nome: ${input.name.trim()}\n📧 Email: ${input.email.toLowerCase().trim()}${storePart}${phonePart}\n\n📅 Data: ${new Date().toLocaleDateString("pt-BR")}\n\nAcesse o Painel Admin para ativar o acesso.`,
+          });
+        } catch (e) {
+          // Não bloquear o cadastro se a notificação falhar
+          console.warn("[Register] Falha ao notificar admin:", e);
         }
 
         return { success: true, message: "Cadastro enviado. Aguarde liberação do administrador." };

@@ -57,3 +57,4 @@
 - [x] Abas de produtos devem iniciar fechadas (colapsadas) por padrão — usuário clica para expandir
 - [x] Criar página de Ajuda/Tutorial ensinando a configurar o sistema (preços, taxas, condições de troca, texto do orçamento, nome da loja)
 - [x] Remover botão "Resumo" do header mobile que fica cortado
+- [x] Notificação automática ao admin quando um novo vendedor se cadastra (nome, email, loja, telefone)
