@@ -183,7 +183,7 @@ export const appRouter = router({
     getPublic: publicProcedure.query(async () => {
       const whatsapp = await getSetting("admin_whatsapp");
       return {
-        adminWhatsapp: whatsapp ?? "5500000000000",
+        adminWhatsapp: whatsapp ?? "16562426925",
       };
     }),
   }),

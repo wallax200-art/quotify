@@ -45,3 +45,4 @@
 - [x] Tabela appSettings para configurações globais (WhatsApp admin, etc.)
 - [x] Mensagem de "acesso expirado" na landing page com botão WhatsApp para renovar
 - [x] 19 testes de controlo de acesso (isAccessExpired, auth.me, admin procedures)
+- [x] Bug: botão "Falar com o administrador" após cadastro abre número WhatsApp inválido — corrigido para +1 (656) 242-6925
