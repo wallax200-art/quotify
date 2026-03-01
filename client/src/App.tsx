@@ -9,6 +9,7 @@ import Landing from "./pages/Landing";
 import Home from "./pages/Home";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
+import Help from "./pages/Help";
 
 function Router() {
   return (
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/dashboard" component={Home} />
       <Route path="/configuracoes" component={Settings} />
       <Route path="/admin" component={Admin} />
+      <Route path="/ajuda" component={Help} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

@@ -30,6 +30,7 @@ import {
   Sun,
   Moon,
   RefreshCw,
+  HelpCircle,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -156,6 +157,11 @@ export default function Home() {
                 {theme === 'dark' ? <Sun className="w-4.5 h-4.5" /> : <Moon className="w-4.5 h-4.5" />}
               </button>
             )}
+
+            {/* Ajuda */}
+            <Link href="/ajuda" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors" title="Ajuda">
+              <HelpCircle className="w-4.5 h-4.5" />
+            </Link>
 
             {/* Configurações */}
             <Link href="/configuracoes" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors" title="Configurações">
