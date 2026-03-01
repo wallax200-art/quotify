@@ -239,7 +239,7 @@ export default function ProductSelector({ products, selectedProduct, onSelect, o
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeProductCategory, setActiveProductCategory] = useState<string>("iPhones");
   const [conditionFilter, setConditionFilter] = useState<"all" | "novo" | "seminovo">("all");
-  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
 
   // Categorias de produto disponíveis
@@ -302,7 +302,7 @@ export default function ProductSelector({ products, selectedProduct, onSelect, o
   }, [filtered]);
 
   const toggleCollapse = (cat: string) => {
-    setCollapsedCategories((prev) => {
+    setExpandedCategories((prev) => {
       const next = new Set(prev);
       if (next.has(cat)) next.delete(cat);
       else next.add(cat);
@@ -370,7 +370,7 @@ export default function ProductSelector({ products, selectedProduct, onSelect, o
                 setActiveProductCategory(cat);
                 setActiveCategory(null);
                 setConditionFilter("all");
-                setCollapsedCategories(new Set());
+                setExpandedCategories(new Set());
                 setEditingProductId(null);
               }}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all shrink-0 ${
@@ -464,13 +464,13 @@ export default function ProductSelector({ products, selectedProduct, onSelect, o
                 {category}{" "}
                 <span className="text-muted-foreground font-normal normal-case">({items.length})</span>
               </span>
-              {collapsedCategories.has(category) ? (
-                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
-              ) : (
+              {expandedCategories.has(category) ? (
                 <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
               )}
             </button>
-            {!collapsedCategories.has(category) && (
+            {expandedCategories.has(category) && (
               <div className="divide-y divide-border">
                 {items.map((product) => {
                   const isSelected = selectedProduct?.id === product.id;

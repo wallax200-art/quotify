@@ -54,3 +54,4 @@
 - [x] Limpar/remover os 3 textos soltos abaixo do botão WhatsApp na landing page (visual feio, espaço excessivo)
 - [x] Bug: botão Excluir no Admin dá erro "The string did not match the expected pattern" — corrigido (site publicado precisava ser re-publicado)
 - [x] Adicionar botão de recarregar/refresh no header do dashboard para os usuários atualizarem a página
+- [x] Abas de produtos devem iniciar fechadas (colapsadas) por padrão — usuário clica para expandir

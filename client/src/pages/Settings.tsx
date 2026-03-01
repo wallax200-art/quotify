@@ -301,10 +301,10 @@ export default function Settings() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [conditionFilter, setConditionFilter] = useState<"all" | "novo" | "seminovo">("all");
   const [productCategoryFilter, setProductCategoryFilter] = useState<string>("iPhones");
-  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   const toggleCategory = (cat: string) => {
-    setCollapsedCategories(prev => {
+    setExpandedCategories(prev => {
       const next = new Set(prev);
       if (next.has(cat)) next.delete(cat);
       else next.add(cat);
@@ -481,7 +481,7 @@ export default function Settings() {
                     {availableProductCategories.map((cat) => (
                       <button
                         key={cat}
-                        onClick={() => { setProductCategoryFilter(cat); setConditionFilter("all"); setCollapsedCategories(new Set()); }}
+                        onClick={() => { setProductCategoryFilter(cat); setConditionFilter("all"); setExpandedCategories(new Set()); }}
                         className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all shrink-0 ${
                           productCategoryFilter === cat
                             ? "bg-primary text-primary-foreground shadow-sm"
@@ -506,9 +506,9 @@ export default function Settings() {
                     <div key={cat} className="border border-border rounded-lg overflow-hidden">
                       <button onClick={() => toggleCategory(cat)} className="w-full flex items-center justify-between px-3 py-2.5 bg-secondary/50 hover:bg-secondary transition-colors">
                         <span className="text-xs font-semibold text-foreground">{cat} <span className="text-muted-foreground font-normal">({items.length})</span></span>
-                        {collapsedCategories.has(cat) ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />}
+                        {expandedCategories.has(cat) ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
                       </button>
-                      {!collapsedCategories.has(cat) && (
+                      {expandedCategories.has(cat) && (
                         <div className="divide-y divide-border">
                           {items.map((p) => (
                             <div key={p.id}>
@@ -565,9 +565,9 @@ export default function Settings() {
                     <div key={cat} className="border border-border rounded-lg overflow-hidden">
                       <button onClick={() => toggleCategory(cat)} className="w-full flex items-center justify-between px-3 py-2.5 bg-secondary/50 hover:bg-secondary transition-colors">
                         <span className="text-xs font-semibold text-foreground">{cat} <span className="text-muted-foreground font-normal">({items.length})</span></span>
-                        {collapsedCategories.has(cat) ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />}
+                        {expandedCategories.has(cat) ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
                       </button>
-                      {!collapsedCategories.has(cat) && (
+                      {expandedCategories.has(cat) && (
                         <div className="divide-y divide-border">
                           {items.map((p) => (
                             <div key={p.id}>
