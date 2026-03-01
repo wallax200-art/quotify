@@ -31,6 +31,7 @@ import {
   Moon,
   RefreshCw,
   HelpCircle,
+  MessageCircle,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -157,6 +158,17 @@ export default function Home() {
                 {theme === 'dark' ? <Sun className="w-4.5 h-4.5" /> : <Moon className="w-4.5 h-4.5" />}
               </button>
             )}
+
+            {/* Comunidade WhatsApp */}
+            <a
+              href="https://chat.whatsapp.com/I1FHlMvVaz2FpWG8BDBe8c?mode=gi_t"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2 rounded-lg text-emerald-500 hover:text-emerald-400 hover:bg-secondary transition-colors"
+              title="Comunidade WhatsApp"
+            >
+              <MessageCircle className="w-4.5 h-4.5" />
+            </a>
 
             {/* Ajuda */}
             <Link href="/ajuda" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors" title="Ajuda">
