@@ -35,3 +35,5 @@
 - [x] Simplificar hero: headline "Menos cálculo. Mais vendas." + subheadline curta, remover parágrafo descritivo
 - [x] Corrigir botão WhatsApp para abrir conversa direta com +1 (656) 242-6925 com mensagem de teste grátis
 - [x] Implementar suporte PWA (manifesto, service worker, ícones, meta tags, instalável no iPhone/Android)
+- [x] Bug: site publicado redireciona para login Manus OAuth antes de mostrar a landing page (resolvido via visibilidade pública)
+- [x] Configurar Open Graph meta tags com logo para pré-visualização bonita no WhatsApp/redes sociais
