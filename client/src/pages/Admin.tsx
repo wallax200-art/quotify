@@ -30,6 +30,8 @@ import {
   Timer,
   CalendarClock,
   KeyRound,
+  Trash2,
+  FileDown,
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { Link } from "wouter";
@@ -75,6 +77,9 @@ export default function Admin() {
   // Access grant modal state
   const [grantUserId, setGrantUserId] = useState<number | null>(null);
   const [grantDays, setGrantDays] = useState("30");
+  // Delete confirmation state
+  const [deleteUserId, setDeleteUserId] = useState<number | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const utils = trpc.useUtils();
   const { data: userList, isLoading } = trpc.admin.listUsers.useQuery();
@@ -128,6 +133,79 @@ export default function Admin() {
     },
     onError: () => toast.error("Erro ao salvar configuração"),
   });
+
+  const deleteUserMutation = trpc.admin.deleteUser.useMutation({
+    onSuccess: () => {
+      utils.admin.listUsers.invalidate();
+      toast.success("Usuário excluído com sucesso");
+      setDeleteUserId(null);
+    },
+    onError: (err) => toast.error(err.message || "Erro ao excluir usuário"),
+  });
+
+  /** Generate and download PDF with contacts for remarketing */
+  const handleExportPDF = async () => {
+    if (!userList) return;
+    setIsExporting(true);
+    try {
+      const contacts = userList.filter((u: any) => u.role !== "admin");
+      if (contacts.length === 0) {
+        toast.error("Nenhum contato para exportar");
+        setIsExporting(false);
+        return;
+      }
+
+      // Generate PDF using jsPDF
+      const { default: jsPDF } = await import("jspdf");
+      const { default: autoTable } = await import("jspdf-autotable");
+
+      const doc = new jsPDF({ orientation: "landscape" });
+      const now = new Date().toLocaleDateString("pt-BR");
+
+      // Title
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text("Lista de Contatos - Remarketing", 14, 20);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Exportado em: ${now}  |  Total: ${contacts.length} contato${contacts.length !== 1 ? "s" : ""}`, 14, 28);
+
+      // Table
+      const tableData = contacts.map((u: any) => [
+        u.name || "-",
+        u.storeName || "-",
+        u.phone || "-",
+        u.email || "-",
+        u.status === "active" ? "Ativo" : u.status === "pending" ? "Pendente" : "Bloqueado",
+        u.createdAt ? new Date(u.createdAt).toLocaleDateString("pt-BR") : "-",
+      ]);
+
+      autoTable(doc, {
+        startY: 34,
+        head: [["Nome", "Loja", "Telefone", "Email", "Status", "Cadastro"]],
+        body: tableData,
+        styles: { fontSize: 9, cellPadding: 3 },
+        headStyles: { fillColor: [30, 30, 30], textColor: [255, 255, 255], fontStyle: "bold" },
+        alternateRowStyles: { fillColor: [245, 245, 245] },
+        columnStyles: {
+          0: { cellWidth: 40 },
+          1: { cellWidth: 40 },
+          2: { cellWidth: 35 },
+          3: { cellWidth: 60 },
+          4: { cellWidth: 25 },
+          5: { cellWidth: 30 },
+        },
+      });
+
+      doc.save(`contatos-remarketing-${now.replace(/\//g, "-")}.pdf`);
+      toast.success("PDF exportado com sucesso!");
+    } catch (err) {
+      console.error("Export error:", err);
+      toast.error("Erro ao gerar PDF");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const filteredUsers = useMemo(() => {
     if (!userList) return [];
@@ -307,6 +385,24 @@ export default function Admin() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         {activeTab === "users" ? (
           <>
+            {/* Export PDF button */}
+            <div className="flex justify-end mb-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportPDF}
+                disabled={isExporting || !userList || userList.length === 0}
+                className="text-xs"
+              >
+                {isExporting ? (
+                  <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                ) : (
+                  <FileDown className="w-3.5 h-3.5 mr-1.5" />
+                )}
+                Exportar Contatos (PDF)
+              </Button>
+            </div>
+
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-3 mb-6">
               <div className="relative flex-1">
@@ -440,6 +536,44 @@ export default function Admin() {
                                 <ShieldCheck className="w-3.5 h-3.5 mr-1" />
                                 Tornar Admin
                               </Button>
+                            )}
+                            {/* Delete user button */}
+                            {u.role !== "admin" && u.openId !== user?.openId && (
+                              deleteUserId === u.id ? (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs text-red-500 font-medium">Excluir?</span>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => deleteUserMutation.mutate({ userId: u.id })}
+                                    disabled={deleteUserMutation.isPending}
+                                    className="bg-red-600 hover:bg-red-700 text-white text-xs h-7 px-2"
+                                  >
+                                    {deleteUserMutation.isPending ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      "Sim"
+                                    )}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setDeleteUserId(null)}
+                                    className="text-xs text-muted-foreground h-7 px-2"
+                                  >
+                                    Não
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => setDeleteUserId(u.id)}
+                                  className="text-xs text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 mr-1" />
+                                  Excluir
+                                </Button>
+                              )
                             )}
                           </div>
                         </div>

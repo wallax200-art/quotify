@@ -315,6 +315,20 @@ export function isAccessExpired(user: { role: string; accessExpiresAt: Date | nu
   return new Date() > new Date(user.accessExpiresAt);
 }
 
+/**
+ * Delete a user by ID.
+ * Admins cannot be deleted.
+ */
+export async function deleteUser(userId: number): Promise<{ success: boolean; error?: string }> {
+  const db = await getDb();
+  if (!db) return { success: false, error: "Banco de dados indisponível" };
+  const user = await getUserById(userId);
+  if (!user) return { success: false, error: "Usuário não encontrado" };
+  if (user.role === "admin") return { success: false, error: "Não é possível excluir um administrador" };
+  await db.delete(users).where(eq(users.id, userId));
+  return { success: true };
+}
+
 // App Settings helpers
 export async function getSetting(key: string): Promise<string | null> {
   const db = await getDb();

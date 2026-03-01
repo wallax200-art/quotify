@@ -2,7 +2,7 @@ import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
-import { getAllUsers, updateUserStatus, updateUserRole, updateUserProfile, getSetting, setSetting, getAllSettings, registerUser, loginUser, seedAdminUser, grantUserAccess, updateUserAccessDays, isAccessExpired } from "./db";
+import { getAllUsers, updateUserStatus, updateUserRole, updateUserProfile, getSetting, setSetting, getAllSettings, registerUser, loginUser, seedAdminUser, grantUserAccess, updateUserAccessDays, isAccessExpired, deleteUser } from "./db";
 import { sdk } from "./_core/sdk";
 import { z } from "zod";
 
@@ -176,6 +176,34 @@ export const appRouter = router({
         await setSetting(input.key, input.value);
         return { success: true };
       }),
+
+    // Delete a user (admins cannot be deleted)
+    deleteUser: adminProcedure
+      .input(z.object({
+        userId: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        const result = await deleteUser(input.userId);
+        if (!result.success) {
+          throw new Error(result.error || "Erro ao excluir usuário");
+        }
+        return { success: true };
+      }),
+
+    // Export contacts for remarketing (returns data, PDF generated on client)
+    exportContacts: adminProcedure.query(async () => {
+      const userList = await getAllUsers();
+      return userList
+        .filter((u: any) => u.role !== "admin")
+        .map((u: any) => ({
+          name: u.name || "",
+          email: u.email || "",
+          phone: u.phone || "",
+          storeName: u.storeName || "",
+          status: u.status || "pending",
+          createdAt: u.createdAt,
+        }));
+    }),
   }),
 
   // Public settings (e.g., admin WhatsApp number for contact button)

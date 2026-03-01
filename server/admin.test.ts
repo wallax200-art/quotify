@@ -161,6 +161,66 @@ describe("settings.getPublic", () => {
   });
 });
 
+describe("admin.deleteUser - access control", () => {
+  it("admin can call deleteUser procedure", async () => {
+    const { ctx } = createAdminContext();
+    const caller = appRouter.createCaller(ctx);
+    try {
+      await caller.admin.deleteUser({ userId: 999 });
+    } catch (e: any) {
+      // DB errors are OK (user not found), but FORBIDDEN is not
+      expect(e.code).not.toBe("FORBIDDEN");
+    }
+  });
+
+  it("regular user cannot call deleteUser", async () => {
+    const { ctx } = createUserContext();
+    const caller = appRouter.createCaller(ctx);
+    try {
+      await caller.admin.deleteUser({ userId: 999 });
+      expect(true).toBe(false);
+    } catch (e: any) {
+      expect(e.code).toBe("FORBIDDEN");
+    }
+  });
+
+  it("unauthenticated user cannot call deleteUser", async () => {
+    const { ctx } = createUnauthContext();
+    const caller = appRouter.createCaller(ctx);
+    try {
+      await caller.admin.deleteUser({ userId: 999 });
+      expect(true).toBe(false);
+    } catch (e: any) {
+      expect(e.code).toBe("FORBIDDEN");
+    }
+  });
+});
+
+describe("admin.exportContacts - access control", () => {
+  it("admin can call exportContacts", async () => {
+    const { ctx } = createAdminContext();
+    const caller = appRouter.createCaller(ctx);
+    try {
+      const result = await caller.admin.exportContacts();
+      expect(Array.isArray(result)).toBe(true);
+    } catch (e: any) {
+      // DB errors OK, but FORBIDDEN is not
+      expect(e.code).not.toBe("FORBIDDEN");
+    }
+  });
+
+  it("regular user cannot call exportContacts", async () => {
+    const { ctx } = createUserContext();
+    const caller = appRouter.createCaller(ctx);
+    try {
+      await caller.admin.exportContacts();
+      expect(true).toBe(false);
+    } catch (e: any) {
+      expect(e.code).toBe("FORBIDDEN");
+    }
+  });
+});
+
 describe("profile.update - access control", () => {
   it("authenticated user can update profile", async () => {
     const { ctx } = createUserContext();
