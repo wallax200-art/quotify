@@ -60,3 +60,4 @@
 - [x] Notificação automática ao admin quando um novo vendedor se cadastra (nome, email, loja, telefone)
 - [x] Adicionar seção na Ajuda com instruções de como instalar o app no celular (tela inicial) para iPhone e Android
 - [x] Adicionar botão de acesso à comunidade WhatsApp no dashboard
+- [x] Criar página de boas-vindas com guia de primeiros passos (5 passos para configurar a plataforma)

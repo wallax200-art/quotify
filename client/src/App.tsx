@@ -10,11 +10,13 @@ import Home from "./pages/Home";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
 import Help from "./pages/Help";
+import Welcome from "./pages/Welcome";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Landing} />
+      <Route path="/boas-vindas" component={Welcome} />
       <Route path="/dashboard" component={Home} />
       <Route path="/configuracoes" component={Settings} />
       <Route path="/admin" component={Admin} />
