@@ -15,6 +15,11 @@ import {
   ValidationError,
 } from "../../errors/AppError";
 import type { User } from "../../../drizzle/schema";
+import { getSetting } from "../stores/support-settings.repository";
+
+// ─── Constantes ───────────────────────────────
+/** Número padrão de dias de teste grátis para novos usuários */
+const DEFAULT_TRIAL_DAYS = 7;
 
 // ─── Consultas ────────────────────────────────
 
@@ -43,6 +48,22 @@ export async function registerUser(data: {
   const passwordHash = await bcrypt.hash(data.password, 12);
   const openId = `email:${data.email.toLowerCase().trim()}`;
 
+  // Verificar se o trial grátis está habilitado nas configurações
+  let trialDays = DEFAULT_TRIAL_DAYS;
+  try {
+    const trialSetting = await getSetting("free_trial_days");
+    if (trialSetting) {
+      const parsed = parseInt(trialSetting, 10);
+      if (!isNaN(parsed) && parsed >= 0) trialDays = parsed;
+    }
+  } catch { /* usar padrão */ }
+
+  // Calcular datas de acesso do trial
+  const now = new Date();
+  const trialExpiresAt = trialDays > 0
+    ? new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000)
+    : null;
+
   const id = await createUser({
     openId,
     name: data.name,
@@ -50,8 +71,15 @@ export async function registerUser(data: {
     password: passwordHash,
     loginMethod: "email",
     role: "seller",
-    status: "pending",
+    // Se trial > 0: ativar automaticamente com acesso temporário
+    // Se trial = 0: manter pendente aguardando aprovação manual
+    status: trialDays > 0 ? "active" : "pending",
     phone: data.phone,
+    ...(trialDays > 0 && {
+      accessGrantedAt: now,
+      accessDays: trialDays,
+      accessExpiresAt: trialExpiresAt,
+    }),
   });
 
   return { id, openId };
@@ -116,7 +144,7 @@ export async function removeUser(userId: number): Promise<void> {
   await deleteUserById(userId);
 }
 
-// ─── Recuperação de senha (placeholder) ───────
+// ─── Recuperação de senha ─────────────────────
 
 export async function requestPasswordReset(email: string): Promise<void> {
   const user = await findUserByEmail(email.toLowerCase().trim());

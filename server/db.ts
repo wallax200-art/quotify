@@ -303,7 +303,8 @@ export async function updateUserAccessDays(userId: number, days: number): Promis
  * Admin users never expire.
  */
 export function isAccessExpired(user: { role: string; accessExpiresAt: Date | null; accessDays: number }): boolean {
-  if (user.role === "admin") return false;
+  // master_admin e admin (legado) nunca expiram
+  if (user.role === "master_admin" || user.role === "admin") return false;
   if (!user.accessExpiresAt || user.accessDays === 0) return false;
   return new Date() > new Date(user.accessExpiresAt);
 }

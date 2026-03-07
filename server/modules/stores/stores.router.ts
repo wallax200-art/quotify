@@ -26,6 +26,9 @@ import {
   getAllSupportSettings,
   setSupportSetting,
 } from "./support-settings.repository";
+import { getDb } from "../../db";
+import { storeUsers } from "../../../drizzle/schema";
+import { eq } from "drizzle-orm";
 
 export const storesRouter = router({
   // ─── Configurações Públicas ───────────────────
@@ -34,6 +37,120 @@ export const storesRouter = router({
       const whatsapp = await getSetting("admin_whatsapp");
       return { adminWhatsapp: whatsapp ?? "16562426925" };
     }),
+  }),
+
+  // ─── Loja do usuário logado ───────────────────
+  my: router({
+    /** Retorna o storeId da primeira loja vinculada ao usuário logado */
+    getStoreId: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return { storeId: null };
+      const links = await db
+        .select()
+        .from(storeUsers)
+        .where(eq(storeUsers.userId, ctx.user.id))
+        .limit(1);
+      return { storeId: links.length > 0 ? links[0].storeId : null };
+    }),
+
+    /** Retorna todas as configurações da loja do usuário logado */
+    getConfig: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return null;
+      const links = await db
+        .select()
+        .from(storeUsers)
+        .where(eq(storeUsers.userId, ctx.user.id))
+        .limit(1);
+      if (links.length === 0) return null;
+      const storeId = links[0].storeId;
+      const [settings, machineFees, deviceConditions, tradeInRules, products] = await Promise.all([
+        getStoreSettings(storeId).catch(() => null),
+        getStoreMachineFees(storeId).catch(() => []),
+        getStoreDeviceConditions(storeId).catch(() => []),
+        getStoreTradeInRules(storeId).catch(() => []),
+        getStoreProducts(storeId).catch(() => []),
+      ]);
+      return { storeId, settings, machineFees, deviceConditions, tradeInRules, products };
+    }),
+
+    /** Sincroniza em lote as configurações da loja (taxas, condições, produtos, texto) */
+    syncConfig: storeOwnerProcedure
+      .input(
+        z.object({
+          storeId: z.number(),
+          quoteClosingText: z.string().optional(),
+          storeName: z.string().optional(),
+          whatsapp: z.string().optional(),
+          machineFees: z
+            .array(
+              z.object({
+                installments: z.number().min(1),
+                ratePercentage: z.string(),
+                label: z.string().optional(),
+                isActive: z.boolean().optional(),
+              }),
+            )
+            .optional(),
+          deviceConditions: z
+            .array(
+              z.object({
+                conditionKey: z.string(),
+                label: z.string(),
+                description: z.string().optional(),
+                deductionValue: z.string(),
+                category: z.enum(["estetica", "funcionalidade", "garantia"]),
+                icon: z.string().optional(),
+                isActive: z.boolean().optional(),
+              }),
+            )
+            .optional(),
+          products: z
+            .array(
+              z.object({
+                productId: z.number(),
+                price: z.string(),
+                condition: z.enum(["novo", "seminovo"]).optional(),
+                isActive: z.boolean().optional(),
+              }),
+            )
+            .optional(),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        const { storeId, quoteClosingText, storeName, whatsapp, machineFees, deviceConditions, products } = input;
+
+        // Atualizar configurações da loja
+        if (quoteClosingText !== undefined) {
+          await updateStoreSettings(storeId, { quoteClosingText });
+        }
+        if (storeName !== undefined || whatsapp !== undefined) {
+          await updateStoreInfo(storeId, { name: storeName, whatsapp });
+        }
+
+        // Sincronizar taxas
+        if (machineFees) {
+          for (const fee of machineFees) {
+            await saveStoreMachineFee(storeId, fee as any);
+          }
+        }
+
+        // Sincronizar condições
+        if (deviceConditions) {
+          for (const condition of deviceConditions) {
+            await saveStoreDeviceCondition(storeId, condition as any);
+          }
+        }
+
+        // Sincronizar produtos
+        if (products) {
+          for (const product of products) {
+            await saveStoreProduct(storeId, product as any);
+          }
+        }
+
+        return { success: true };
+      }),
   }),
 
   // ─── Admin Master: Gestão Global de Lojas ─────

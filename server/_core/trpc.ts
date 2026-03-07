@@ -1,6 +1,7 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
+import { isAccessExpired } from "../db";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
@@ -43,6 +44,21 @@ const isActive = t.middleware(async ({ ctx, next }) => {
   return next({ ctx: { ...ctx, user: ctx.user } });
 });
 
+// ─── Middleware: Acesso não expirado ──────────
+// Bloqueia usuários com acesso expirado (exceto master_admin)
+const isNotExpired = t.middleware(async ({ ctx, next }) => {
+  if (!ctx.user) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Não autenticado. (10001)" });
+  }
+  if (ctx.user.role !== "master_admin" && isAccessExpired(ctx.user)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Seu período de acesso expirou. Entre em contato com o administrador para renovar. (10004)",
+    });
+  }
+  return next({ ctx: { ...ctx, user: ctx.user } });
+});
+
 // ─── Middleware: Admin Master ──────────────────
 const isMasterAdmin = t.middleware(async ({ ctx, next }) => {
   if (!ctx.user || ctx.user.role !== "master_admin") {
@@ -70,8 +86,8 @@ const isStoreOwnerOrAdmin = t.middleware(async ({ ctx, next }) => {
 
 // ─── Procedures Exportadas ────────────────────
 
-/** Exige usuário logado e com status 'ativo' */
-export const protectedProcedure = t.procedure.use(isAuthed).use(isActive);
+/** Exige usuário logado, ativo e com acesso não expirado */
+export const protectedProcedure = t.procedure.use(isAuthed).use(isActive).use(isNotExpired);
 
 /** Exige usuário logado, ativo e com role 'master_admin' */
 export const masterAdminProcedure = t.procedure

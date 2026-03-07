@@ -265,7 +265,7 @@ export default function Admin() {
   };
 
   const getRoleBadge = (role: string) => {
-    if (role === "admin") {
+    if (role === "master_admin") {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary uppercase tracking-wider">
           <ShieldCheck className="w-3 h-3" />
@@ -316,7 +316,7 @@ export default function Admin() {
   };
 
   // Check if current user is admin
-  if (user && (user as any).role !== "admin") {
+  if (user && (user as any).role !== "master_admin") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center p-8">

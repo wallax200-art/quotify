@@ -11,12 +11,31 @@ import {
   resetPassword,
 } from "../users/users.service";
 import { getSetting } from "../stores/support-settings.repository";
+import { isAccessExpired, getDb } from "../../db";
+import { storeUsers } from "../../../drizzle/schema";
+import { eq } from "drizzle-orm";
 
 export const authRouter = router({
   // ─── Sessão Atual ────────────────────────────
   me: protectedProcedure.query(async ({ ctx }) => {
     const { password, ...user } = ctx.user as any;
-    return user;
+    const accessExpired = isAccessExpired(user);
+
+    // Buscar a primeira loja vinculada ao usuário
+    let storeId: number | null = null;
+    try {
+      const db = await getDb();
+      if (db) {
+        const links = await db
+          .select()
+          .from(storeUsers)
+          .where(eq(storeUsers.userId, user.id))
+          .limit(1);
+        if (links.length > 0) storeId = links[0].storeId;
+      }
+    } catch { /* ignore */ }
+
+    return { ...user, accessExpired, storeId };
   }),
 
   logout: protectedProcedure.mutation(async ({ ctx }) => {

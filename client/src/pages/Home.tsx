@@ -77,9 +77,9 @@ export default function Home() {
       const status = (user as any).status;
       const role = (user as any).role;
       const accessExpired = (user as any).accessExpired;
-      if (status !== "active" && role !== "admin") {
+      if (status !== "active" && role !== "master_admin") {
         setLocation("/");
-      } else if (accessExpired && role !== "admin") {
+      } else if (accessExpired && role !== "master_admin") {
         setLocation("/?expired=1");
       }
     }
@@ -96,7 +96,7 @@ export default function Home() {
   if (!user) return null;
 
   const hasSelection = state.selectedProduct || state.selectedUpgrade;
-  const isAdmin = (user as any).role === "admin";
+  const isAdmin = (user as any).role === "master_admin";
 
   // Indicadores de status para cada tab
   const tabStatus: Record<TabId, { done: boolean; badge?: string }> = {

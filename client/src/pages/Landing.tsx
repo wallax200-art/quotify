@@ -153,7 +153,7 @@ export default function Landing() {
   useEffect(() => {
     if (!loading && isAuthenticated && user) {
       const accessExpired = (user as any).accessExpired;
-      if (accessExpired && (user as any).role !== 'admin') {
+      if (accessExpired && (user as any).role !== 'master_admin') {
         // Don't redirect - show expired message
         return;
       }
@@ -312,7 +312,7 @@ export default function Landing() {
           )}
 
           {/* Access expired message */}
-          {isAuthenticated && (user as any)?.accessExpired && (user as any)?.role !== 'admin' && (
+          {isAuthenticated && (user as any)?.accessExpired && (user as any)?.role !== 'master_admin' && (
             <div className="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-xl p-5 text-center mb-6">
               <div className="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center mx-auto mb-3">
                 <Clock className="w-6 h-6 text-orange-600 dark:text-orange-400" />
@@ -655,7 +655,7 @@ export default function Landing() {
           </div>
 
           {/* Access expired banner */}
-          {isAuthenticated && (user as any)?.accessExpired && (user as any)?.role !== 'admin' && (
+          {isAuthenticated && (user as any)?.accessExpired && (user as any)?.role !== 'master_admin' && (
             <div className="max-w-lg mx-auto bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-xl p-5 text-center mb-8">
               <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center mx-auto mb-2">
                 <Clock className="w-5 h-5 text-orange-600 dark:text-orange-400" />
