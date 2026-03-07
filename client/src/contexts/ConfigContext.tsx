@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from "react";
 import {
   Product,
   UpgradeProduct,
@@ -12,9 +12,9 @@ import {
   DEFAULT_PRODUCT_CATEGORIES,
   DEFAULT_ORCAMENTO_CLOSING,
 } from "@/lib/data";
+import { trpc } from "@/lib/trpc";
 
-// --- Storage Keys ---
-// Bump DATA_VERSION whenever DEFAULT_PRODUCTS changes structure
+// --- Storage Keys (fallback local) ---
 const DATA_VERSION = "v4";
 const KEYS = {
   products: `tiosam-products-${DATA_VERSION}`,
@@ -26,14 +26,6 @@ const KEYS = {
   storeName: `tiosam-storename-${DATA_VERSION}`,
   dataVersion: "tiosam-data-version",
 } as const;
-
-// Clean up old version keys on load
-function cleanupOldKeys() {
-  try {
-    const oldPrefixes = ["tiosam-products-v3", "tiosam-upgrade-v3", "tiosam-deductions-v3", "tiosam-rates-v3", "tiosam-categories-v3", "tiosam-closing-v3"];
-    oldPrefixes.forEach(k => localStorage.removeItem(k));
-  } catch { /* ignore */ }
-}
 
 // --- Config State ---
 interface ConfigState {
@@ -77,6 +69,9 @@ interface ConfigContextType extends ConfigState {
   resetUpgradeProducts: () => void;
   resetDeductions: () => void;
   resetRates: () => void;
+  // Sync status
+  isSyncing: boolean;
+  lastSyncError: string | null;
 }
 
 const ConfigContext = createContext<ConfigContextType | null>(null);
@@ -95,35 +90,22 @@ function saveToStorage<T>(key: string, data: T): void {
   } catch { /* ignore */ }
 }
 
-/**
- * Smart merge: preserva preços editados pelo usuário mas adiciona novos produtos padrão.
- * Se o usuário editou o preço de um produto (preço > 0), mantém o preço dele.
- * Produtos novos do DEFAULT que não existem no storage são adicionados.
- */
 function mergeProducts(stored: Product[], defaults: Product[]): Product[] {
   const storedMap = new Map(stored.map(p => [p.id, p]));
   const merged: Product[] = [];
   const seenIds = new Set<string>();
-
-  // Primeiro, adicionar todos os defaults (com preço do stored se existir)
   for (const def of defaults) {
     const existing = storedMap.get(def.id);
     if (existing && existing.price > 0) {
-      // Manter o preço editado pelo usuário
       merged.push({ ...def, price: existing.price });
     } else {
       merged.push(def);
     }
     seenIds.add(def.id);
   }
-
-  // Depois, adicionar produtos customizados do stored que não existem nos defaults
   Array.from(storedMap.values()).forEach(s => {
-    if (!seenIds.has(s.id)) {
-      merged.push(s);
-    }
+    if (!seenIds.has(s.id)) merged.push(s);
   });
-
   return merged;
 }
 
@@ -131,7 +113,6 @@ function mergeUpgradeProducts(stored: UpgradeProduct[], defaults: UpgradeProduct
   const storedMap = new Map(stored.map(p => [p.id, p]));
   const merged: UpgradeProduct[] = [];
   const seenIds = new Set<string>();
-
   for (const def of defaults) {
     const existing = storedMap.get(def.id);
     if (existing && existing.tradeInValue !== def.tradeInValue) {
@@ -141,37 +122,24 @@ function mergeUpgradeProducts(stored: UpgradeProduct[], defaults: UpgradeProduct
     }
     seenIds.add(def.id);
   }
-
   Array.from(storedMap.values()).forEach(s => {
-    if (!seenIds.has(s.id)) {
-      merged.push(s);
-    }
+    if (!seenIds.has(s.id)) merged.push(s);
   });
-
   return merged;
 }
 
 export function ConfigProvider({ children }: { children: ReactNode }) {
-  // Cleanup old version keys
-  cleanupOldKeys();
-
+  // ─── State ───────────────────────────────────────
   const [products, setProducts] = useState<Product[]>(() => {
     const stored = loadFromStorage<Product[] | null>(KEYS.products, null);
-    if (stored) {
-      // Merge: manter preços editados mas adicionar novos produtos
-      return mergeProducts(stored, DEFAULT_PRODUCTS);
-    }
+    if (stored) return mergeProducts(stored, DEFAULT_PRODUCTS);
     return DEFAULT_PRODUCTS;
   });
-
   const [upgradeProducts, setUpgradeProducts] = useState<UpgradeProduct[]>(() => {
     const stored = loadFromStorage<UpgradeProduct[] | null>(KEYS.upgradeProducts, null);
-    if (stored) {
-      return mergeUpgradeProducts(stored, DEFAULT_UPGRADE_PRODUCTS);
-    }
+    if (stored) return mergeUpgradeProducts(stored, DEFAULT_UPGRADE_PRODUCTS);
     return DEFAULT_UPGRADE_PRODUCTS;
   });
-
   const [conditionDeductions, setConditionDeductions] = useState<ConditionDeduction[]>(() =>
     loadFromStorage(KEYS.deductions, DEFAULT_CONDITION_DEDUCTIONS)
   );
@@ -188,16 +156,163 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     loadFromStorage(KEYS.storeName, "")
   );
 
-  // Auto-save on changes
-  useEffect(() => { saveToStorage(KEYS.products, products); }, [products]);
-  useEffect(() => { saveToStorage(KEYS.upgradeProducts, upgradeProducts); }, [upgradeProducts]);
-  useEffect(() => { saveToStorage(KEYS.deductions, conditionDeductions); }, [conditionDeductions]);
-  useEffect(() => { saveToStorage(KEYS.rates, installmentRates); }, [installmentRates]);
-  useEffect(() => { saveToStorage(KEYS.categories, productCategories); }, [productCategories]);
-  useEffect(() => { saveToStorage(KEYS.closingText, closingText); }, [closingText]);
-  useEffect(() => { saveToStorage(KEYS.storeName, storeName); }, [storeName]);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncError, setLastSyncError] = useState<string | null>(null);
+  const [storeId, setStoreId] = useState<number | null>(null);
+  const hasLoadedFromDb = useRef(false);
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // --- Products ---
+  // ─── tRPC: buscar storeId ────────────────────────
+  const storeIdQuery = trpc.stores.my.getStoreId.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  // ─── tRPC: buscar config da loja ─────────────────
+  const configQuery = trpc.stores.my.getConfig.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+    enabled: !!storeIdQuery.data?.storeId,
+  });
+
+  // ─── tRPC: mutation para sincronizar ─────────────
+  const syncMutation = trpc.stores.my.syncConfig.useMutation({
+    onError: (err) => {
+      setLastSyncError(err.message);
+      setIsSyncing(false);
+    },
+    onSuccess: () => {
+      setLastSyncError(null);
+      setIsSyncing(false);
+    },
+  });
+
+  // ─── Carregar storeId ────────────────────────────
+  useEffect(() => {
+    if (storeIdQuery.data?.storeId) {
+      setStoreId(storeIdQuery.data.storeId);
+    }
+  }, [storeIdQuery.data]);
+
+  // ─── Carregar dados do banco quando disponível ───
+  useEffect(() => {
+    if (!configQuery.data || hasLoadedFromDb.current) return;
+    const cfg = configQuery.data;
+    hasLoadedFromDb.current = true;
+
+    // Se a loja tem configurações no banco, usar elas
+    // Caso contrário, manter os dados locais (que podem ser os defaults)
+
+    // Taxas da maquininha → installmentRates
+    if (cfg.machineFees && cfg.machineFees.length > 0) {
+      const dbRates: InstallmentRate[] = cfg.machineFees.map((f: any) => ({
+        installments: f.installments,
+        rate: parseFloat(f.ratePercentage || "0"),
+        label: f.label || `${f.installments}x`,
+      }));
+      setInstallmentRates(dbRates);
+      saveToStorage(KEYS.rates, dbRates);
+    }
+
+    // Condições de aparelhos → conditionDeductions
+    if (cfg.deviceConditions && cfg.deviceConditions.length > 0) {
+      const dbDeductions: ConditionDeduction[] = cfg.deviceConditions.map((c: any) => ({
+        id: c.conditionKey || `cond-${c.id}`,
+        label: c.label,
+        description: c.description || "",
+        defaultValue: parseFloat(c.deductionValue || "0"),
+        icon: c.icon || "alert-triangle",
+        category: mapCategory(c.category),
+      }));
+      setConditionDeductions(dbDeductions);
+      saveToStorage(KEYS.deductions, dbDeductions);
+    }
+
+    // Configurações da loja (texto de fechamento, nome)
+    if (cfg.settings) {
+      if (cfg.settings.quoteClosingText) {
+        setClosingTextState(cfg.settings.quoteClosingText);
+        saveToStorage(KEYS.closingText, cfg.settings.quoteClosingText);
+      }
+    }
+
+    // Nome da loja
+    if (cfg.storeId) {
+      // Buscar nome da loja se disponível no settings ou store
+    }
+  }, [configQuery.data]);
+
+  // Mapear categorias do banco para o formato do front-end
+  function mapCategory(dbCategory: string): "estado" | "bateria" | "funcionalidade" | "garantia" {
+    switch (dbCategory) {
+      case "estetica": return "estado";
+      case "funcionalidade": return "funcionalidade";
+      case "garantia": return "garantia";
+      default: return "estado";
+    }
+  }
+
+  function mapCategoryToDb(frontCategory: string): "estetica" | "funcionalidade" | "garantia" {
+    switch (frontCategory) {
+      case "estado": return "estetica";
+      case "bateria": return "estetica";
+      case "funcionalidade": return "funcionalidade";
+      case "garantia": return "garantia";
+      default: return "estetica";
+    }
+  }
+
+  // ─── Debounced sync para o banco ─────────────────
+  const scheduleSyncToDb = useCallback(() => {
+    if (!storeId) return;
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(() => {
+      syncToDb();
+    }, 2000); // Espera 2 segundos após a última alteração
+  }, [storeId]);
+
+  const syncToDb = useCallback(() => {
+    if (!storeId) return;
+    setIsSyncing(true);
+    syncMutation.mutate({
+      storeId,
+      storeName: storeName || undefined,
+      quoteClosingText: closingText || undefined,
+      machineFees: installmentRates.map(r => ({
+        installments: r.installments,
+        ratePercentage: String(r.rate),
+        label: r.label,
+        isActive: true,
+      })),
+      deviceConditions: conditionDeductions.map(d => ({
+        conditionKey: d.id,
+        label: d.label,
+        description: d.description,
+        deductionValue: String(d.defaultValue),
+        category: mapCategoryToDb(d.category),
+        icon: d.icon,
+        isActive: true,
+      })),
+    });
+  }, [storeId, storeName, closingText, installmentRates, conditionDeductions, syncMutation]);
+
+  // ─── Auto-save local + agendar sync BD ───────────
+  useEffect(() => { saveToStorage(KEYS.products, products); scheduleSyncToDb(); }, [products]);
+  useEffect(() => { saveToStorage(KEYS.upgradeProducts, upgradeProducts); scheduleSyncToDb(); }, [upgradeProducts]);
+  useEffect(() => { saveToStorage(KEYS.deductions, conditionDeductions); scheduleSyncToDb(); }, [conditionDeductions]);
+  useEffect(() => { saveToStorage(KEYS.rates, installmentRates); scheduleSyncToDb(); }, [installmentRates]);
+  useEffect(() => { saveToStorage(KEYS.categories, productCategories); }, [productCategories]);
+  useEffect(() => { saveToStorage(KEYS.closingText, closingText); scheduleSyncToDb(); }, [closingText]);
+  useEffect(() => { saveToStorage(KEYS.storeName, storeName); scheduleSyncToDb(); }, [storeName]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    };
+  }, []);
+
+  // ─── Products ────────────────────────────────────
   const addProduct = useCallback((product: Product) => {
     setProducts(prev => [...prev, product]);
   }, []);
@@ -210,7 +325,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     setProducts(prev => prev.filter(p => p.id !== id));
   }, []);
 
-  // --- Upgrade Products ---
+  // ─── Upgrade Products ───────────────────────────
   const addUpgradeProduct = useCallback((product: UpgradeProduct) => {
     setUpgradeProducts(prev => [...prev, product]);
   }, []);
@@ -223,7 +338,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     setUpgradeProducts(prev => prev.filter(p => p.id !== id));
   }, []);
 
-  // --- Deductions ---
+  // ─── Deductions ─────────────────────────────────
   const addDeduction = useCallback((deduction: ConditionDeduction) => {
     setConditionDeductions(prev => [...prev, deduction]);
   }, []);
@@ -236,7 +351,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     setConditionDeductions(prev => prev.filter(d => d.id !== id));
   }, []);
 
-  // --- Rates ---
+  // ─── Rates ──────────────────────────────────────
   const addRate = useCallback((rate: InstallmentRate) => {
     setInstallmentRates(prev => [...prev, rate].sort((a, b) => a.installments - b.installments));
   }, []);
@@ -251,7 +366,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     setInstallmentRates(prev => prev.filter(r => r.installments !== installments));
   }, []);
 
-  // --- Categories ---
+  // ─── Categories ─────────────────────────────────
   const addCategory = useCallback((category: ProductCategory) => {
     setProductCategories(prev => [...prev, category]);
   }, []);
@@ -264,17 +379,17 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     setProductCategories(prev => prev.filter(c => c.id !== id));
   }, []);
 
-  // --- Closing text ---
+  // ─── Closing text ───────────────────────────────
   const setClosingText = useCallback((text: string) => {
     setClosingTextState(text);
   }, []);
 
-  // --- Store name ---
+  // ─── Store name ─────────────────────────────────
   const setStoreName = useCallback((name: string) => {
     setStoreNameState(name);
   }, []);
 
-  // --- Resets ---
+  // ─── Resets ─────────────────────────────────────
   const resetAll = useCallback(() => {
     setProducts(DEFAULT_PRODUCTS);
     setUpgradeProducts(DEFAULT_UPGRADE_PRODUCTS);
@@ -336,6 +451,8 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     resetUpgradeProducts,
     resetDeductions,
     resetRates,
+    isSyncing,
+    lastSyncError,
   };
 
   return (
