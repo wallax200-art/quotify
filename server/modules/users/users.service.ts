@@ -16,6 +16,7 @@ import {
 } from "../../errors/AppError";
 import type { User } from "../../../drizzle/schema";
 import { getSetting } from "../stores/support-settings.repository";
+import { createNewStore } from "../stores/stores.service";
 
 // ─── Constantes ───────────────────────────────
 /** Número padrão de dias de teste grátis para novos usuários */
@@ -81,6 +82,28 @@ export async function registerUser(data: {
       accessExpiresAt: trialExpiresAt,
     }),
   });
+
+  // ─── Criar loja automaticamente para o novo usuário ───
+  try {
+    const slug = (data.name || data.email.split("@")[0])
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .substring(0, 50);
+    // Garantir slug único adicionando o userId
+    const uniqueSlug = `${slug}-${id}`;
+    await createNewStore({
+      name: data.name || data.email.split("@")[0],
+      slug: uniqueSlug,
+      ownerId: id,
+    });
+    console.log(`[Register] Loja criada automaticamente para ${data.email} (slug: ${uniqueSlug})`);
+  } catch (storeErr) {
+    console.warn("[Register] Falha ao criar loja automática:", storeErr);
+    // Não bloquear o registro se a criação da loja falhar
+  }
 
   return { id, openId };
 }
