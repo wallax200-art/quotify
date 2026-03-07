@@ -101,7 +101,13 @@ export async function getStoreSettings(storeId: number) {
 
 export async function updateStoreSettings(
   storeId: number,
-  data: { quoteClosingText?: string; themePreference?: "light" | "dark" | "system" },
+  data: {
+    quoteClosingText?: string;
+    themePreference?: "light" | "dark" | "system";
+    logoUrl?: string | null;
+    warrantyText?: string;
+    defaultWarrantyDays?: number;
+  },
 ): Promise<void> {
   await getStoreById(storeId);
   await upsertStoreSettings(storeId, data);

@@ -344,6 +344,10 @@ export default function Home() {
               installmentRates={config.installmentRates}
               closingText={config.closingText}
               storeName={config.storeName}
+              logoBase64={config.logoUrl}
+              warrantyText={config.warrantyText}
+              warrantyDays={config.warrantyDays}
+              sellerName={user?.name || undefined}
               onReset={resetAll}
             />
           </div>

@@ -244,11 +244,35 @@ export const storesRouter = router({
           storeId: z.number(),
           quoteClosingText: z.string().optional(),
           themePreference: z.enum(["light", "dark", "system"]).optional(),
+          warrantyText: z.string().optional(),
+          logoUrl: z.string().optional(),
+          defaultWarrantyDays: z.number().optional(),
         }),
       )
       .mutation(async ({ input }) => {
         const { storeId, ...data } = input;
         await updateStoreSettings(storeId, data);
+        return { success: true };
+      }),
+
+    /** Upload de logo da loja (recebe base64 e salva como data URL) */
+    uploadLogo: storeOwnerProcedure
+      .input(
+        z.object({
+          storeId: z.number(),
+          logoBase64: z.string().max(2_000_000, "Logo deve ter no máximo ~1.5MB"),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        await updateStoreSettings(input.storeId, { logoUrl: input.logoBase64 });
+        return { success: true, logoUrl: input.logoBase64 };
+      }),
+
+    /** Remover logo da loja */
+    removeLogo: storeOwnerProcedure
+      .input(z.object({ storeId: z.number() }))
+      .mutation(async ({ input }) => {
+        await updateStoreSettings(input.storeId, { logoUrl: null });
         return { success: true };
       }),
 

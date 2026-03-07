@@ -24,6 +24,9 @@ const KEYS = {
   categories: `tiosam-categories-${DATA_VERSION}`,
   closingText: `tiosam-closing-${DATA_VERSION}`,
   storeName: `tiosam-storename-${DATA_VERSION}`,
+  logoUrl: `tiosam-logo-${DATA_VERSION}`,
+  warrantyText: `tiosam-warranty-${DATA_VERSION}`,
+  warrantyDays: `tiosam-warrantydays-${DATA_VERSION}`,
   dataVersion: "tiosam-data-version",
 } as const;
 
@@ -36,6 +39,9 @@ interface ConfigState {
   productCategories: ProductCategory[];
   closingText: string;
   storeName: string;
+  logoUrl: string | null;
+  warrantyText: string;
+  warrantyDays: number;
 }
 
 interface ConfigContextType extends ConfigState {
@@ -63,6 +69,11 @@ interface ConfigContextType extends ConfigState {
   setClosingText: (text: string) => void;
   // Store name
   setStoreName: (name: string) => void;
+  // Logo
+  setLogoUrl: (url: string | null) => void;
+  // Warranty
+  setWarrantyText: (text: string) => void;
+  setWarrantyDays: (days: number) => void;
   // Reset
   resetAll: () => void;
   resetProducts: () => void;
@@ -155,6 +166,15 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   const [storeName, setStoreNameState] = useState<string>(() =>
     loadFromStorage(KEYS.storeName, "")
   );
+  const [logoUrl, setLogoUrlState] = useState<string | null>(() =>
+    loadFromStorage(KEYS.logoUrl, null)
+  );
+  const [warrantyText, setWarrantyTextState] = useState<string>(() =>
+    loadFromStorage(KEYS.warrantyText, "")
+  );
+  const [warrantyDays, setWarrantyDaysState] = useState<number>(() =>
+    loadFromStorage(KEYS.warrantyDays, 90)
+  );
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncError, setLastSyncError] = useState<string | null>(null);
@@ -236,9 +256,20 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Nome da loja
-    if (cfg.storeId) {
-      // Buscar nome da loja se disponível no settings ou store
+    // Logo e garantia
+    if (cfg.settings) {
+      if (cfg.settings.logoUrl) {
+        setLogoUrlState(cfg.settings.logoUrl);
+        saveToStorage(KEYS.logoUrl, cfg.settings.logoUrl);
+      }
+      if (cfg.settings.warrantyText) {
+        setWarrantyTextState(cfg.settings.warrantyText);
+        saveToStorage(KEYS.warrantyText, cfg.settings.warrantyText);
+      }
+      if (cfg.settings.defaultWarrantyDays) {
+        setWarrantyDaysState(cfg.settings.defaultWarrantyDays);
+        saveToStorage(KEYS.warrantyDays, cfg.settings.defaultWarrantyDays);
+      }
     }
   }, [configQuery.data]);
 
@@ -304,6 +335,9 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   useEffect(() => { saveToStorage(KEYS.categories, productCategories); }, [productCategories]);
   useEffect(() => { saveToStorage(KEYS.closingText, closingText); scheduleSyncToDb(); }, [closingText]);
   useEffect(() => { saveToStorage(KEYS.storeName, storeName); scheduleSyncToDb(); }, [storeName]);
+  useEffect(() => { saveToStorage(KEYS.logoUrl, logoUrl); }, [logoUrl]);
+  useEffect(() => { saveToStorage(KEYS.warrantyText, warrantyText); scheduleSyncToDb(); }, [warrantyText]);
+  useEffect(() => { saveToStorage(KEYS.warrantyDays, warrantyDays); scheduleSyncToDb(); }, [warrantyDays]);
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -389,6 +423,43 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     setStoreNameState(name);
   }, []);
 
+  // ─── Logo ───────────────────────────────────────
+  const setLogoUrl = useCallback((url: string | null) => {
+    setLogoUrlState(url);
+    // Sync logo to DB immediately
+    if (storeId) {
+      syncMutation.mutate({
+        storeId,
+        storeName: storeName || undefined,
+        quoteClosingText: closingText || undefined,
+        machineFees: installmentRates.map(r => ({
+          installments: r.installments,
+          ratePercentage: String(r.rate),
+          label: r.label,
+          isActive: true,
+        })),
+        deviceConditions: conditionDeductions.map(d => ({
+          conditionKey: d.id,
+          label: d.label,
+          description: d.description,
+          deductionValue: String(d.defaultValue),
+          category: mapCategoryToDb(d.category),
+          icon: d.icon,
+          isActive: true,
+        })),
+      });
+    }
+  }, [storeId, storeName, closingText, installmentRates, conditionDeductions, syncMutation]);
+
+  // ─── Warranty ───────────────────────────────────
+  const setWarrantyText = useCallback((text: string) => {
+    setWarrantyTextState(text);
+  }, []);
+
+  const setWarrantyDays = useCallback((days: number) => {
+    setWarrantyDaysState(days);
+  }, []);
+
   // ─── Resets ─────────────────────────────────────
   const resetAll = useCallback(() => {
     setProducts(DEFAULT_PRODUCTS);
@@ -429,6 +500,9 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     productCategories,
     closingText,
     storeName,
+    logoUrl,
+    warrantyText,
+    warrantyDays,
     addProduct,
     updateProduct,
     removeProduct,
@@ -446,6 +520,9 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     removeCategory,
     setClosingText,
     setStoreName,
+    setLogoUrl,
+    setWarrantyText,
+    setWarrantyDays,
     resetAll,
     resetProducts,
     resetUpgradeProducts,

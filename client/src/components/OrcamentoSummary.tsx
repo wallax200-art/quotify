@@ -1,11 +1,14 @@
 /**
  * OrcamentoSummary — Resumo do orçamento Quotify Imports
  * Mostra resumo + botão para gerar texto formatado para WhatsApp
- * Fórmula: Parcela = (Valor ÷ (1 − taxa)) ÷ número de parcelas
+ * + Botão para gerar PDF do orçamento
+ * + Botão para gerar Termo de Garantia PDF
  */
 import { useState } from "react";
 import { Product, UpgradeProduct, InstallmentRate, formatCurrency, gerarOrcamentoTexto } from "@/lib/data";
 import { OrcamentoCalculations } from "@/hooks/useOrcamento";
+import { generateQuotePdf } from "@/lib/generateQuotePdf";
+import { generateWarrantyPdf, getDefaultWarrantyText } from "@/lib/generateWarrantyPdf";
 import {
   Receipt,
   Smartphone,
@@ -19,6 +22,11 @@ import {
   Check,
   MessageCircle,
   Share2,
+  FileText,
+  Shield,
+  X,
+  User,
+  Phone,
 } from "lucide-react";
 
 interface OrcamentoSummaryProps {
@@ -29,6 +37,10 @@ interface OrcamentoSummaryProps {
   installmentRates: InstallmentRate[];
   closingText: string;
   storeName?: string;
+  logoBase64?: string | null;
+  warrantyText?: string;
+  warrantyDays?: number;
+  sellerName?: string;
   onReset: () => void;
 }
 
@@ -40,10 +52,18 @@ export default function OrcamentoSummary({
   installmentRates,
   closingText,
   storeName,
+  logoBase64,
+  warrantyText,
+  warrantyDays = 90,
+  sellerName,
   onReset,
 }: OrcamentoSummaryProps) {
   const [copied, setCopied] = useState(false);
   const [showOrcamento, setShowOrcamento] = useState(false);
+  const [showWarrantyModal, setShowWarrantyModal] = useState(false);
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [pdfTarget, setPdfTarget] = useState<"quote" | "warranty" | null>(null);
   const hasAnything = selectedProduct || selectedUpgrade;
 
   const handleCopyOrcamento = () => {
@@ -74,6 +94,44 @@ export default function OrcamentoSummary({
     );
     const encoded = encodeURIComponent(texto);
     window.open(`https://wa.me/?text=${encoded}`, "_blank");
+  };
+
+  const openCustomerModal = (target: "quote" | "warranty") => {
+    setPdfTarget(target);
+    setShowWarrantyModal(true);
+  };
+
+  const handleGeneratePdf = () => {
+    if (!selectedProduct) return;
+    setShowWarrantyModal(false);
+
+    if (pdfTarget === "quote") {
+      generateQuotePdf({
+        product: selectedProduct,
+        upgrade: selectedUpgrade,
+        amountToPay: calculations.amountToPay,
+        rates: installmentRates,
+        closingText,
+        storeName: storeName || "Quotify",
+        logoBase64,
+        deductions: calculations.deductionDetails.map((d) => ({
+          label: d.label,
+          value: d.value,
+        })),
+        customerName: customerName || undefined,
+      });
+    } else if (pdfTarget === "warranty") {
+      generateWarrantyPdf({
+        product: selectedProduct,
+        storeName: storeName || "Quotify",
+        logoBase64,
+        warrantyText: warrantyText || getDefaultWarrantyText(),
+        warrantyDays,
+        customerName: customerName || undefined,
+        customerPhone: customerPhone || undefined,
+        sellerName,
+      });
+    }
   };
 
   return (
@@ -213,7 +271,7 @@ export default function OrcamentoSummary({
 
           {/* À vista selecionado */}
           {selectedInstallments === 0 && calculations.amountToPay > 0 && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+            <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Banknote className="w-4 h-4 text-emerald-600" />
                 <span className="text-sm font-bold text-emerald-600">Pagamento à vista no PIX</span>
@@ -286,8 +344,110 @@ export default function OrcamentoSummary({
                   </div>
                 </div>
               )}
+
+              {/* Botões de PDF */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => openCustomerModal("quote")}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 active:scale-[0.98] transition-all"
+                >
+                  <FileText className="w-3.5 h-3.5" /> PDF Orçamento
+                </button>
+                <button
+                  onClick={() => openCustomerModal("warranty")}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-amber-600 text-white text-xs font-semibold hover:bg-amber-700 active:scale-[0.98] transition-all"
+                >
+                  <Shield className="w-3.5 h-3.5" /> Termo Garantia
+                </button>
+              </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Modal de dados do cliente para PDF */}
+      {showWarrantyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-background rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <div className="flex items-center gap-2">
+                {pdfTarget === "quote" ? (
+                  <FileText className="w-5 h-5 text-blue-600" />
+                ) : (
+                  <Shield className="w-5 h-5 text-amber-600" />
+                )}
+                <h3 className="text-base font-bold text-foreground">
+                  {pdfTarget === "quote" ? "Gerar PDF do Orçamento" : "Gerar Termo de Garantia"}
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowWarrantyModal(false)}
+                className="p-1 rounded-lg hover:bg-muted transition-colors"
+              >
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Informe os dados do cliente (opcional). O PDF será gerado com as informações do orçamento atual.
+              </p>
+
+              <div className="space-y-2">
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Nome do cliente"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-border bg-muted/30 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+
+                {pdfTarget === "warranty" && (
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      type="tel"
+                      placeholder="Telefone do cliente"
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-border bg-muted/30 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {pdfTarget === "warranty" && (
+                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-3">
+                  <p className="text-xs text-amber-800 dark:text-amber-200">
+                    <strong>Garantia:</strong> {warrantyDays} dias a partir de hoje.
+                    {warrantyText ? " Texto personalizado configurado." : " Texto padrão será utilizado."}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2 p-4 border-t border-border">
+              <button
+                onClick={() => setShowWarrantyModal(false)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-muted transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleGeneratePdf}
+                className={`flex-1 px-4 py-2.5 rounded-xl text-white text-sm font-bold active:scale-[0.98] transition-all ${
+                  pdfTarget === "quote"
+                    ? "bg-blue-600 hover:bg-blue-700"
+                    : "bg-amber-600 hover:bg-amber-700"
+                }`}
+              >
+                Gerar PDF
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

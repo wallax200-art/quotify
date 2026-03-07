@@ -279,6 +279,8 @@ export const storeSettings = mysqlTable("store_settings", {
   quoteClosingText: text("quote_closing_text"),
   themePreference: mysqlEnum("theme_preference", ["light", "dark", "system"]).notNull().default("system"),
   defaultWarrantyDays: int("default_warranty_days").notNull().default(0),
+  logoUrl: text("logo_url"),
+  warrantyText: text("warranty_text"),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });
 
