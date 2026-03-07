@@ -56,8 +56,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       values.role = user.role;
       updateSet.role = user.role;
     } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
+      values.role = 'master_admin';
+      updateSet.role = 'master_admin';
     }
 
     // Owner is always active
@@ -76,10 +76,6 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.password = user.password;
     }
 
-    if (user.storeName !== undefined) {
-      values.storeName = user.storeName;
-      updateSet.storeName = user.storeName;
-    }
 
     if (user.phone !== undefined) {
       values.phone = user.phone;
@@ -140,18 +136,17 @@ export async function updateUserStatus(userId: number, status: "pending" | "acti
   await db.update(users).set({ status }).where(eq(users.id, userId));
 }
 
-export async function updateUserRole(userId: number, role: "user" | "admin") {
+export async function updateUserRole(userId: number, role: "master_admin" | "store_owner" | "seller") {
   const db = await getDb();
   if (!db) return;
   await db.update(users).set({ role }).where(eq(users.id, userId));
 }
 
-export async function updateUserProfile(userId: number, data: { name?: string; storeName?: string; phone?: string }) {
+export async function updateUserProfile(userId: number, data: { name?: string; phone?: string }) {
   const db = await getDb();
   if (!db) return;
   const updateData: Record<string, unknown> = {};
   if (data.name !== undefined) updateData.name = data.name;
-  if (data.storeName !== undefined) updateData.storeName = data.storeName;
   if (data.phone !== undefined) updateData.phone = data.phone;
   if (Object.keys(updateData).length > 0) {
     await db.update(users).set(updateData).where(eq(users.id, userId));
@@ -172,7 +167,6 @@ export async function registerUser(data: {
   email: string;
   password: string;
   name: string;
-  storeName?: string;
   phone?: string;
 }): Promise<{ success: boolean; error?: string }> {
   const db = await getDb();
@@ -192,10 +186,9 @@ export async function registerUser(data: {
     email: data.email,
     password: hashedPassword,
     name: data.name,
-    storeName: data.storeName ?? null,
     phone: data.phone ?? null,
     loginMethod: "email",
-    role: "user",
+    role: "seller",
     status: "pending",
     lastSignedIn: new Date(),
   });
@@ -240,7 +233,7 @@ export async function seedAdminUser(email: string, password: string, name: strin
     const hashedPassword = await hashPassword(password);
     await db.update(users).set({ 
       password: hashedPassword, 
-      role: "admin", 
+      role: "master_admin", 
       status: "active",
       loginMethod: "email",
       name: existing.name || name 
@@ -258,7 +251,7 @@ export async function seedAdminUser(email: string, password: string, name: strin
     password: hashedPassword,
     name,
     loginMethod: "email",
-    role: "admin",
+    role: "master_admin",
     status: "active",
     lastSignedIn: new Date(),
   });
@@ -324,7 +317,7 @@ export async function deleteUser(userId: number): Promise<{ success: boolean; er
   if (!db) return { success: false, error: "Banco de dados indisponível" };
   const user = await getUserById(userId);
   if (!user) return { success: false, error: "Usuário não encontrado" };
-  if (user.role === "admin") return { success: false, error: "Não é possível excluir um administrador" };
+  if (user.role === "master_admin") return { success: false, error: "Não é possível excluir um administrador master" };
   await db.delete(users).where(eq(users.id, userId));
   return { success: true };
 }

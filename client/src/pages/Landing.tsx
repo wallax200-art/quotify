@@ -114,7 +114,7 @@ type ViewMode = "landing" | "login" | "register";
 export default function Landing() {
   const { user, loading, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
-  const { data: publicSettings } = trpc.settings.getPublic.useQuery();
+  const { data: publicSettings } = trpc.stores.publicSettings.get.useQuery();
   const { theme, toggleTheme } = useTheme();
 
   const [view, setView] = useState<ViewMode>("landing");
@@ -138,8 +138,12 @@ export default function Landing() {
   const [regSuccess, setRegSuccess] = useState(false);
   const [regLoading, setRegLoading] = useState(false);
 
-  const loginMutation = trpc.auth.login.useMutation();
-  const registerMutation = trpc.auth.register.useMutation();
+  const loginMutation = trpc.auth.login.useMutation({
+    onError: (err) => setLoginError(err.message || "Erro ao fazer login"),
+  });
+  const registerMutation = trpc.auth.register.useMutation({
+    onError: (err) => setRegError(err.message || "Erro ao cadastrar"),
+  });
 
   // Check if user was redirected due to expired access
   const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
@@ -153,7 +157,7 @@ export default function Landing() {
         // Don't redirect - show expired message
         return;
       }
-      if ((user as any).status === "active" || (user as any).role === "admin") {
+      if ((user as any).status === "active") {
         setLocation("/dashboard");
       }
     }
@@ -172,11 +176,6 @@ export default function Landing() {
         password: loginPassword,
       });
 
-      if (!result.success) {
-        setLoginError(result.error || "Erro ao fazer login");
-        setLoginLoading(false);
-        return;
-      }
 
       // Store the session token in localStorage as fallback for browsers that block cookies
       if ((result as any).token) {
@@ -209,19 +208,13 @@ export default function Landing() {
     setRegLoading(true);
 
     try {
-      const result = await registerMutation.mutateAsync({
+      await registerMutation.mutateAsync({
         name: regName,
         email: regEmail,
         password: regPassword,
-        storeName: regStoreName || undefined,
         phone: regPhone || undefined,
       });
 
-      if (!result.success) {
-        setRegError(result.error || "Erro ao cadastrar");
-        setRegLoading(false);
-        return;
-      }
 
       setRegSuccess(true);
       setRegLoading(false);

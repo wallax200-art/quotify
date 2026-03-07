@@ -1,4 +1,3 @@
-import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG } from '@shared/const';
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
@@ -8,38 +7,99 @@ const t = initTRPC.context<TrpcContext>().create({
 });
 
 export const router = t.router;
+
+// ─── Procedure Pública ────────────────────────
+// Sem autenticação (ex: login, registro, landing page)
 export const publicProcedure = t.procedure;
 
-const requireUser = t.middleware(async opts => {
-  const { ctx, next } = opts;
-
+// ─── Middleware: Usuário Autenticado ──────────
+const isAuthed = t.middleware(async ({ ctx, next }) => {
   if (!ctx.user) {
-    throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Não autenticado. Faça login para continuar. (10001)",
+    });
   }
-
-  return next({
-    ctx: {
-      ...ctx,
-      user: ctx.user,
-    },
-  });
+  return next({ ctx: { ...ctx, user: ctx.user } });
 });
 
-export const protectedProcedure = t.procedure.use(requireUser);
-
-export const adminProcedure = t.procedure.use(
-  t.middleware(async opts => {
-    const { ctx, next } = opts;
-
-    if (!ctx.user || ctx.user.role !== 'admin') {
-      throw new TRPCError({ code: "FORBIDDEN", message: NOT_ADMIN_ERR_MSG });
-    }
-
-    return next({
-      ctx: {
-        ...ctx,
-        user: ctx.user,
-      },
+// ─── Middleware: Usuário Ativo ─────────────────
+const isActive = t.middleware(async ({ ctx, next }) => {
+  if (!ctx.user) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Não autenticado. (10001)" });
+  }
+  if (ctx.user.status === "pending") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Sua conta está aguardando aprovação do administrador.",
     });
+  }
+  if (ctx.user.status === "blocked") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Sua conta foi bloqueada. Entre em contato com o suporte.",
+    });
+  }
+  return next({ ctx: { ...ctx, user: ctx.user } });
+});
+
+// ─── Middleware: Admin Master ──────────────────
+const isMasterAdmin = t.middleware(async ({ ctx, next }) => {
+  if (!ctx.user || ctx.user.role !== "master_admin") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Acesso restrito a administradores master. (10002)",
+    });
+  }
+  return next({ ctx: { ...ctx, user: ctx.user } });
+});
+
+// ─── Middleware: Dono de Loja ou Admin ────────
+const isStoreOwnerOrAdmin = t.middleware(async ({ ctx, next }) => {
+  if (
+    !ctx.user ||
+    (ctx.user.role !== "store_owner" && ctx.user.role !== "master_admin")
+  ) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Acesso restrito a donos de loja ou administradores. (10003)",
+    });
+  }
+  return next({ ctx: { ...ctx, user: ctx.user } });
+});
+
+// ─── Procedures Exportadas ────────────────────
+
+/** Exige usuário logado e com status 'ativo' */
+export const protectedProcedure = t.procedure.use(isAuthed).use(isActive);
+
+/** Exige usuário logado, ativo e com role 'master_admin' */
+export const masterAdminProcedure = t.procedure
+  .use(isAuthed)
+  .use(isActive)
+  .use(isMasterAdmin);
+
+/** Exige usuário logado, ativo e com role 'store_owner' ou 'master_admin' */
+export const storeOwnerProcedure = t.procedure
+  .use(isAuthed)
+  .use(isActive)
+  .use(isStoreOwnerOrAdmin);
+
+/**
+ * @deprecated Use masterAdminProcedure para novos endpoints.
+ * Mantido por compatibilidade com rotas legadas.
+ */
+export const adminProcedure = t.procedure.use(
+  t.middleware(async ({ ctx, next }) => {
+    if (
+      !ctx.user ||
+      (ctx.user.role !== "master_admin" && (ctx.user.role as string) !== "admin")
+    ) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Acesso restrito a administradores. (10002)",
+      });
+    }
+    return next({ ctx: { ...ctx, user: ctx.user } });
   }),
 );

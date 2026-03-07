@@ -82,8 +82,8 @@ export default function Admin() {
   const [isExporting, setIsExporting] = useState(false);
 
   const utils = trpc.useUtils();
-  const { data: userList, isLoading } = trpc.admin.listUsers.useQuery();
-  const { data: settings } = trpc.admin.getSettings.useQuery();
+  const { data: userList, isLoading } = trpc.users.admin.listUsers.useQuery();
+  const { data: settings } = trpc.stores.admin.getSettings.useQuery();
 
   useEffect(() => {
     if (settings?.admin_whatsapp && !whatsappEdited) {
@@ -91,25 +91,25 @@ export default function Admin() {
     }
   }, [settings, whatsappEdited]);
 
-  const updateStatus = trpc.admin.updateUserStatus.useMutation({
+  const updateStatus = trpc.users.admin.updateStatus.useMutation({
     onSuccess: () => {
-      utils.admin.listUsers.invalidate();
+      utils.users.admin.listUsers.invalidate();
       toast.success("Status do usuário atualizado");
     },
     onError: () => toast.error("Erro ao atualizar status"),
   });
 
-  const updateRole = trpc.admin.updateUserRole.useMutation({
+  const updateRole = trpc.users.admin.updateRole.useMutation({
     onSuccess: () => {
-      utils.admin.listUsers.invalidate();
+      utils.users.admin.listUsers.invalidate();
       toast.success("Papel do usuário atualizado");
     },
     onError: () => toast.error("Erro ao atualizar papel"),
   });
 
-  const grantAccess = trpc.admin.grantAccess.useMutation({
+  const grantAccess = trpc.users.admin.grantAccess.useMutation({
     onSuccess: () => {
-      utils.admin.listUsers.invalidate();
+      utils.users.admin.listUsers.invalidate();
       toast.success("Acesso liberado com sucesso");
       setGrantUserId(null);
       setGrantDays("30");
@@ -117,26 +117,26 @@ export default function Admin() {
     onError: () => toast.error("Erro ao liberar acesso"),
   });
 
-  const updateAccessDays = trpc.admin.updateAccessDays.useMutation({
+  const updateAccessDays = trpc.users.admin.updateAccessDays.useMutation({
     onSuccess: () => {
-      utils.admin.listUsers.invalidate();
+      utils.users.admin.listUsers.invalidate();
       toast.success("Dias de acesso atualizados");
     },
     onError: () => toast.error("Erro ao atualizar dias"),
   });
 
-  const updateSetting = trpc.admin.updateSetting.useMutation({
+  const updateSetting = trpc.stores.admin.updateSetting.useMutation({
     onSuccess: () => {
-      utils.admin.getSettings.invalidate();
+      utils.stores.admin.getSettings.invalidate();
       toast.success("Configuração salva");
       setWhatsappEdited(false);
     },
     onError: () => toast.error("Erro ao salvar configuração"),
   });
 
-  const deleteUserMutation = trpc.admin.deleteUser.useMutation({
+  const deleteUserMutation = trpc.users.admin.deleteUser.useMutation({
     onSuccess: () => {
-      utils.admin.listUsers.invalidate();
+      utils.users.admin.listUsers.invalidate();
       toast.success("Usuário excluído com sucesso");
       setDeleteUserId(null);
     },
@@ -148,7 +148,7 @@ export default function Admin() {
     if (!userList) return;
     setIsExporting(true);
     try {
-      const contacts = userList.filter((u: any) => u.role !== "admin");
+      const contacts = userList.filter((u: any) => u.role !== "master_admin");
       if (contacts.length === 0) {
         toast.error("Nenhum contato para exportar");
         setIsExporting(false);
@@ -277,7 +277,7 @@ export default function Admin() {
   };
 
   const getAccessInfo = (u: any) => {
-    if (u.role === "admin") {
+    if (u.role === "master_admin") {
       return (
         <span className="inline-flex items-center gap-1 text-xs text-primary font-medium">
           <ShieldCheck className="w-3 h-3" />
@@ -464,7 +464,7 @@ export default function Admin() {
                     <div
                       key={u.id}
                       className={`bg-card rounded-xl border p-4 sm:p-5 transition-all ${
-                        isExpired && u.role !== "admin"
+                        isExpired && u.role !== "master_admin"
                           ? "border-red-500/30 bg-red-500/5"
                           : "border-border hover:shadow-sm"
                       }`}
@@ -525,11 +525,11 @@ export default function Admin() {
                                 Bloquear
                               </Button>
                             )}
-                            {u.role !== "admin" && u.openId !== user?.openId && (
+                            {u.role !== "master_admin" && u.openId !== user?.openId && (
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => updateRole.mutate({ userId: u.id, role: "admin" })}
+                                onClick={() => updateRole.mutate({ userId: u.id, role: "master_admin" })}
                                 disabled={updateRole.isPending}
                                 className="text-xs text-muted-foreground"
                               >
@@ -538,7 +538,7 @@ export default function Admin() {
                               </Button>
                             )}
                             {/* Delete user button */}
-                            {u.role !== "admin" && u.openId !== user?.openId && (
+                            {u.role !== "master_admin" && u.openId !== user?.openId && (
                               deleteUserId === u.id ? (
                                 <div className="flex items-center gap-1.5">
                                   <span className="text-xs text-red-500 font-medium">Excluir?</span>
@@ -598,7 +598,7 @@ export default function Admin() {
                           </div>
 
                           {/* Grant/Update access button */}
-                          {u.role !== "admin" && (
+                          {u.role !== "master_admin" && (
                             <div className="shrink-0">
                               {!isGrantOpen ? (
                                 <Button
