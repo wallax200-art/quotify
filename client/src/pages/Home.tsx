@@ -12,6 +12,8 @@ import UpgradeSelector from "@/components/UpgradeSelector";
 import ConditionDeductions from "@/components/ConditionDeductions";
 import InstallmentRates from "@/components/InstallmentRates";
 import OrcamentoSummary from "@/components/OrcamentoSummary";
+import OnboardingPopups from "@/components/OnboardingPopups";
+import FunctionsMenu from "@/components/FunctionsMenu";
 import { formatCurrency } from "@/lib/data";
 import { Link, useLocation } from "wouter";
 import {
@@ -19,17 +21,12 @@ import {
   ArrowLeftRight,
   AlertTriangle,
   Percent,
-  Calculator,
-  Menu,
-  X,
   ChevronRight,
-  Settings,
   Shield,
   LogOut,
   Loader2,
   Sun,
   Moon,
-  RefreshCw,
   HelpCircle,
   MessageCircle,
 } from "lucide-react";
@@ -120,9 +117,13 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background pb-20 lg:pb-0">
-      {/* Header */}
+      {/* Pop-ups de onboarding (exibe apenas 1 vez) */}
+      <OnboardingPopups />
+
+      {/* Header — Limpo e organizado */}
       <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border shadow-sm">
         <div className="container flex items-center justify-between h-14">
+          {/* Logo */}
           <div className="flex items-center gap-3">
             <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663367201543/ji3XHgPR7e79CMEH66Wkcf/quotify-logo_86d4c6b7.png" alt="Quotify" className="w-9 h-9 rounded-xl object-contain" />
             <div>
@@ -131,22 +132,14 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            {/* Admin button */}
+          {/* Ações do header — Apenas ícones essenciais */}
+          <div className="flex items-center gap-1">
+            {/* Admin */}
             {isAdmin && (
               <Link href="/admin" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors" title="Painel Admin">
                 <Shield className="w-4.5 h-4.5" />
               </Link>
             )}
-
-            {/* Refresh button */}
-            <button
-              onClick={() => window.location.reload()}
-              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-              title="Recarregar página"
-            >
-              <RefreshCw className="w-4.5 h-4.5" />
-            </button>
 
             {/* Theme toggle */}
             {toggleTheme && (
@@ -175,11 +168,6 @@ export default function Home() {
               <HelpCircle className="w-4.5 h-4.5" />
             </Link>
 
-            {/* Configurações */}
-            <Link href="/configuracoes" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors" title="Configurações">
-              <Settings className="w-4.5 h-4.5" />
-            </Link>
-
             {/* Logout */}
             <button
               onClick={async () => {
@@ -191,13 +179,27 @@ export default function Home() {
             >
               <LogOut className="w-4.5 h-4.5" />
             </button>
-
           </div>
         </div>
       </header>
 
       {/* Layout principal */}
       <div className="container py-4 lg:py-6">
+        {/* Barra de ação com menu Ferramentas */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="relative">
+            <FunctionsMenu onSelectTab={setActiveTab} />
+          </div>
+          {hasSelection && (
+            <button
+              onClick={resetAll}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Limpar tudo
+            </button>
+          )}
+        </div>
+
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Coluna principal */}
           <div className="flex-1 min-w-0">
@@ -237,7 +239,6 @@ export default function Home() {
                   onSelect={selectProduct}
                   onUpdatePrice={(productId, newPrice) => {
                     config.updateProduct(productId, { price: newPrice });
-                    // Also update the selected product in the orcamento state if it matches
                     if (state.selectedProduct && state.selectedProduct.id === productId) {
                       selectProduct({ ...state.selectedProduct, price: newPrice });
                     }
