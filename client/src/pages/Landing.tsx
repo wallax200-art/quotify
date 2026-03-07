@@ -114,7 +114,7 @@ type ViewMode = "landing" | "login" | "register";
 export default function Landing() {
   const { user, loading, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
-  const { data: publicSettings } = trpc.settings.getPublic.useQuery();
+  const { data: publicSettings } = trpc.stores.publicSettings.get.useQuery();
   const { theme, toggleTheme } = useTheme();
 
   const [view, setView] = useState<ViewMode>("landing");
@@ -173,7 +173,7 @@ export default function Landing() {
       });
 
       if (!result.success) {
-        setLoginError(result.error || "Erro ao fazer login");
+        setLoginError("Erro ao fazer login");
         setLoginLoading(false);
         return;
       }
@@ -213,12 +213,11 @@ export default function Landing() {
         name: regName,
         email: regEmail,
         password: regPassword,
-        storeName: regStoreName || undefined,
         phone: regPhone || undefined,
       });
 
       if (!result.success) {
-        setRegError(result.error || "Erro ao cadastrar");
+        setRegError("Erro ao cadastrar");
         setRegLoading(false);
         return;
       }
