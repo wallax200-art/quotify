@@ -14,6 +14,7 @@ import {
   Settings,
   X,
   ChevronDown,
+  ChevronRight,
   Wrench,
 } from "lucide-react";
 
@@ -89,10 +90,19 @@ export default function FunctionsMenu({ onSelectTab }: FunctionsMenuProps) {
   const [, setLocation] = useLocation();
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detectar mobile
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 1024);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   // Fechar ao clicar fora (desktop)
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || isMobile) return;
     const handleClickOutside = (e: MouseEvent) => {
       if (
         menuRef.current &&
@@ -105,7 +115,7 @@ export default function FunctionsMenu({ onSelectTab }: FunctionsMenuProps) {
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen]);
+  }, [isOpen, isMobile]);
 
   // Fechar com Escape
   useEffect(() => {
@@ -117,17 +127,38 @@ export default function FunctionsMenu({ onSelectTab }: FunctionsMenuProps) {
     return () => document.removeEventListener("keydown", handleEscape);
   }, [isOpen]);
 
+  // Bloquear scroll do body quando bottom sheet está aberto no mobile
+  useEffect(() => {
+    if (isOpen && isMobile) {
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = "";
+      };
+    }
+  }, [isOpen, isMobile]);
+
   const handleSelect = useCallback(
     (item: FunctionItem) => {
+      // Fechar menu primeiro
       setIsOpen(false);
-      if (item.action === "tab" && item.tabId) {
-        onSelectTab(item.tabId);
-      } else if (item.action === "navigate" && item.navigateTo) {
-        setLocation(item.navigateTo);
-      }
+
+      // Usar setTimeout para garantir que o menu fecha antes da navegação
+      setTimeout(() => {
+        if (item.action === "tab" && item.tabId) {
+          onSelectTab(item.tabId);
+        } else if (item.action === "navigate" && item.navigateTo) {
+          setLocation(item.navigateTo);
+        }
+      }, 50);
     },
     [onSelectTab, setLocation],
   );
+
+  const handleOverlayClick = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsOpen(false);
+  }, []);
 
   return (
     <>
@@ -145,18 +176,27 @@ export default function FunctionsMenu({ onSelectTab }: FunctionsMenuProps) {
       </button>
 
       {/* ─── Mobile: Bottom Sheet ─── */}
-      {isOpen && (
-        <div className="lg:hidden fixed inset-0 z-[80]">
+      {isOpen && isMobile && (
+        <div
+          className="fixed inset-0"
+          style={{ zIndex: 9999 }}
+        >
           {/* Overlay */}
           <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
-            onClick={() => setIsOpen(false)}
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={handleOverlayClick}
+            onTouchEnd={handleOverlayClick}
+            style={{ zIndex: 9999 }}
           />
 
           {/* Bottom Sheet */}
-          <div className="absolute bottom-0 left-0 right-0 bg-card rounded-t-2xl border-t border-border shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[75vh] overflow-y-auto">
+          <div
+            className="absolute bottom-0 left-0 right-0 bg-card rounded-t-2xl border-t border-border shadow-2xl max-h-[75vh] overflow-y-auto"
+            style={{ zIndex: 10000 }}
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Handle */}
-            <div className="sticky top-0 bg-card pt-3 pb-2 px-5 border-b border-border/50 z-10">
+            <div className="sticky top-0 bg-card pt-3 pb-2 px-5 border-b border-border/50">
               <div className="w-10 h-1 bg-border rounded-full mx-auto mb-3" />
               <div className="flex items-center justify-between">
                 <div>
@@ -177,8 +217,13 @@ export default function FunctionsMenu({ onSelectTab }: FunctionsMenuProps) {
               {FUNCTIONS.map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => handleSelect(item)}
-                  className="w-full flex items-center gap-3.5 p-3.5 rounded-xl hover:bg-secondary/80 active:bg-secondary transition-colors text-left group"
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSelect(item);
+                  }}
+                  className="w-full flex items-center gap-3.5 p-3.5 rounded-xl hover:bg-secondary/80 active:bg-secondary/90 transition-colors text-left group touch-manipulation"
                 >
                   <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 text-primary shrink-0 group-hover:bg-primary/15 transition-colors">
                     {item.icon}
@@ -187,22 +232,23 @@ export default function FunctionsMenu({ onSelectTab }: FunctionsMenuProps) {
                     <p className="text-sm font-semibold text-foreground">{item.label}</p>
                     <p className="text-xs text-muted-foreground truncate">{item.description}</p>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-muted-foreground -rotate-90 shrink-0" />
+                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
                 </button>
               ))}
             </div>
 
-            {/* Safe area bottom */}
-            <div className="h-6" />
+            {/* Safe area bottom para iPhones com notch */}
+            <div className="h-8" />
           </div>
         </div>
       )}
 
       {/* ─── Desktop: Dropdown ─── */}
-      {isOpen && (
+      {isOpen && !isMobile && (
         <div
           ref={menuRef}
-          className="hidden lg:block absolute top-full left-0 mt-2 w-80 bg-card rounded-xl border border-border shadow-xl z-[80] animate-in fade-in slide-in-from-top-2 duration-200"
+          className="absolute top-full left-0 mt-2 w-80 bg-card rounded-xl border border-border shadow-xl animate-in fade-in slide-in-from-top-2 duration-200"
+          style={{ zIndex: 9999 }}
         >
           <div className="p-2">
             <div className="px-3 py-2 mb-1">
@@ -213,7 +259,12 @@ export default function FunctionsMenu({ onSelectTab }: FunctionsMenuProps) {
             {FUNCTIONS.map((item) => (
               <button
                 key={item.id}
-                onClick={() => handleSelect(item)}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSelect(item);
+                }}
                 className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-secondary/80 transition-colors text-left group"
               >
                 <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 text-primary shrink-0 group-hover:bg-primary/15 transition-colors">
@@ -223,6 +274,7 @@ export default function FunctionsMenu({ onSelectTab }: FunctionsMenuProps) {
                   <p className="text-sm font-medium text-foreground">{item.label}</p>
                   <p className="text-[11px] text-muted-foreground">{item.description}</p>
                 </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
               </button>
             ))}
           </div>
