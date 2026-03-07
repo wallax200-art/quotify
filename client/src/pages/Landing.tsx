@@ -114,7 +114,7 @@ type ViewMode = "landing" | "login" | "register";
 export default function Landing() {
   const { user, loading, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
-  const { data: publicSettings } = trpc.stores.publicSettings.get.useQuery();
+  const { data: publicSettings } = trpc.settings.getPublic.useQuery();
   const { theme, toggleTheme } = useTheme();
 
   const [view, setView] = useState<ViewMode>("landing");
@@ -138,27 +138,23 @@ export default function Landing() {
   const [regSuccess, setRegSuccess] = useState(false);
   const [regLoading, setRegLoading] = useState(false);
 
-  const loginMutation = trpc.auth.login.useMutation({
-    onError: (err) => setLoginError(err.message || "Erro ao fazer login"),
-  });
-  const registerMutation = trpc.auth.register.useMutation({
-    onError: (err) => setRegError(err.message || "Erro ao cadastrar"),
-  });
+  const loginMutation = trpc.auth.login.useMutation();
+  const registerMutation = trpc.auth.register.useMutation();
 
   // Check if user was redirected due to expired access
   const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
   const isExpiredRedirect = urlParams?.get('expired') === '1';
 
-  // Redirect authenticated active users to dashboard (unless access expired)
+  // Redirect authenticated active users to welcome page (unless access expired)
   useEffect(() => {
     if (!loading && isAuthenticated && user) {
       const accessExpired = (user as any).accessExpired;
-      if (accessExpired && (user as any).role !== 'master_admin') {
+      if (accessExpired && (user as any).role !== 'admin') {
         // Don't redirect - show expired message
         return;
       }
-      if ((user as any).status === "active") {
-        setLocation("/dashboard");
+      if ((user as any).status === "active" || (user as any).role === "admin") {
+        setLocation("/boas-vindas");
       }
     }
   }, [loading, isAuthenticated, user, setLocation]);
@@ -176,6 +172,11 @@ export default function Landing() {
         password: loginPassword,
       });
 
+      if (!result.success) {
+        setLoginError(result.error || "Erro ao fazer login");
+        setLoginLoading(false);
+        return;
+      }
 
       // Store the session token in localStorage as fallback for browsers that block cookies
       if ((result as any).token) {
@@ -184,7 +185,7 @@ export default function Landing() {
 
       // Invalidate auth cache and redirect
       await utils.auth.me.invalidate();
-      window.location.href = "/dashboard";
+      window.location.href = "/boas-vindas";
     } catch (err: any) {
       setLoginError(err?.message || "Erro ao fazer login");
       setLoginLoading(false);
@@ -208,13 +209,19 @@ export default function Landing() {
     setRegLoading(true);
 
     try {
-      await registerMutation.mutateAsync({
+      const result = await registerMutation.mutateAsync({
         name: regName,
         email: regEmail,
         password: regPassword,
+        storeName: regStoreName || undefined,
         phone: regPhone || undefined,
       });
 
+      if (!result.success) {
+        setRegError(result.error || "Erro ao cadastrar");
+        setRegLoading(false);
+        return;
+      }
 
       setRegSuccess(true);
       setRegLoading(false);
@@ -312,7 +319,7 @@ export default function Landing() {
           )}
 
           {/* Access expired message */}
-          {isAuthenticated && (user as any)?.accessExpired && (user as any)?.role !== 'master_admin' && (
+          {isAuthenticated && (user as any)?.accessExpired && (user as any)?.role !== 'admin' && (
             <div className="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-xl p-5 text-center mb-6">
               <div className="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center mx-auto mb-3">
                 <Clock className="w-6 h-6 text-orange-600 dark:text-orange-400" />
@@ -655,7 +662,7 @@ export default function Landing() {
           </div>
 
           {/* Access expired banner */}
-          {isAuthenticated && (user as any)?.accessExpired && (user as any)?.role !== 'master_admin' && (
+          {isAuthenticated && (user as any)?.accessExpired && (user as any)?.role !== 'admin' && (
             <div className="max-w-lg mx-auto bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-xl p-5 text-center mb-8">
               <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center mx-auto mb-2">
                 <Clock className="w-5 h-5 text-orange-600 dark:text-orange-400" />

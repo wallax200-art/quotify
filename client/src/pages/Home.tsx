@@ -29,6 +29,7 @@ import {
   Moon,
   HelpCircle,
   MessageCircle,
+  Home as HomeIcon,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -162,6 +163,11 @@ export default function Home() {
             >
               <MessageCircle className="w-4.5 h-4.5" />
             </a>
+
+            {/* Boas-vindas */}
+            <Link href="/boas-vindas" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors" title="Boas-vindas">
+              <HomeIcon className="w-4.5 h-4.5" />
+            </Link>
 
             {/* Ajuda */}
             <Link href="/ajuda" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors" title="Ajuda">
