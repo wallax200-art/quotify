@@ -3,7 +3,7 @@
  * CRUD completo para: Produtos, Upgrade, Abatimentos, Taxas, Categorias, Texto
  * Design: Tech Workspace
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { useConfig } from "@/contexts/ConfigContext";
 import { formatCurrency, type Product, type UpgradeProduct, type ConditionDeduction, type InstallmentRate, type ProductCategory } from "@/lib/data";
 import { Link } from "wouter";
@@ -28,11 +28,15 @@ import {
   Sun,
   Moon,
   Store,
+  ImagePlus,
+  ShieldCheck,
+  Upload,
+  Camera,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTheme } from "@/contexts/ThemeContext";
 
-type SettingsTab = "produtos" | "upgrade" | "abatimentos" | "taxas" | "categorias" | "texto";
+type SettingsTab = "produtos" | "upgrade" | "abatimentos" | "taxas" | "categorias" | "texto" | "logo" | "garantia";
 
 const TABS: { id: SettingsTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "produtos", label: "Produtos à Venda", icon: Package },
@@ -41,6 +45,8 @@ const TABS: { id: SettingsTab; label: string; icon: React.ComponentType<{ classN
   { id: "taxas", label: "Taxas de Parcelamento", icon: Percent },
   { id: "categorias", label: "Categorias", icon: FolderOpen },
   { id: "texto", label: "Texto do Orçamento", icon: MessageSquare },
+  { id: "logo", label: "Logo da Loja", icon: ImagePlus },
+  { id: "garantia", label: "Termo de Garantia", icon: ShieldCheck },
 ];
 
 // ==================== PRODUCT FORM ====================
@@ -456,13 +462,13 @@ export default function Settings() {
                   </div>
                 )}
                 <div className="flex gap-1.5 ml-auto">
-                  {activeTab !== "categorias" && activeTab !== "texto" && (
+                  {activeTab !== "categorias" && activeTab !== "texto" && activeTab !== "logo" && activeTab !== "garantia" && (
                     <button onClick={handleResetTab} className="px-2.5 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors flex items-center gap-1" title="Restaurar padrão">
                       <RotateCcw className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">Restaurar</span>
                     </button>
                   )}
-                  {activeTab !== "texto" && (
+                  {activeTab !== "texto" && activeTab !== "logo" && activeTab !== "garantia" && (
                     <button
                       onClick={() => { setShowForm(true); setEditingId(null); }}
                       className="px-3 py-2 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-1.5"
@@ -790,7 +796,299 @@ export default function Settings() {
                   </div>
                 </div>
               )}
+
+              {/* ==================== LOGO DA LOJA ==================== */}
+              {activeTab === "logo" && (
+                <LogoUploadTab />
+              )}
+
+              {/* ==================== TERMO DE GARANTIA ==================== */}
+              {activeTab === "garantia" && (
+                <WarrantyTab />
+              )}
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==================== LOGO UPLOAD TAB ====================
+function LogoUploadTab() {
+  const config = useConfig();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  const currentLogo = previewUrl || config.logoUrl;
+
+  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validar tipo
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione um arquivo de imagem (PNG, JPG, WEBP)");
+      return;
+    }
+
+    // Validar tamanho (max 1.5MB)
+    if (file.size > 1.5 * 1024 * 1024) {
+      toast.error("A imagem deve ter no m\u00e1ximo 1.5MB");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      // Converter para base64
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        setPreviewUrl(base64);
+        config.setLogoUrl(base64);
+        toast.success("Logo atualizada com sucesso!");
+        setIsUploading(false);
+      };
+      reader.onerror = () => {
+        toast.error("Erro ao ler a imagem");
+        setIsUploading(false);
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      toast.error("Erro ao processar a imagem");
+      setIsUploading(false);
+    }
+
+    // Limpar input para permitir re-upload do mesmo arquivo
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, [config]);
+
+  const handleRemoveLogo = useCallback(() => {
+    config.setLogoUrl(null);
+    setPreviewUrl(null);
+    toast.success("Logo removida");
+  }, [config]);
+
+  return (
+    <div className="space-y-6">
+      {/* Instru\u00e7\u00f5es */}
+      <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+        <div className="flex items-start gap-3">
+          <ImagePlus className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">Logo da Loja</p>
+            <p className="text-xs text-blue-700 dark:text-blue-300">
+              A logo aparece no cabe\u00e7alho dos PDFs de or\u00e7amento e termo de garantia. 
+              Recomendamos uma imagem quadrada (PNG ou JPG) com fundo transparente, at\u00e9 1.5MB.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* \u00c1rea de Upload */}
+      <div className="bg-card rounded-xl border border-border p-6">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/svg+xml"
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+
+        {currentLogo ? (
+          <div className="flex flex-col items-center gap-4">
+            {/* Preview da logo */}
+            <div className="relative w-40 h-40 rounded-2xl border-2 border-dashed border-border bg-secondary/30 flex items-center justify-center overflow-hidden">
+              <img
+                src={currentLogo}
+                alt="Logo da loja"
+                className="max-w-full max-h-full object-contain p-2"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">Logo atual da loja</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="px-4 py-2.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-2"
+              >
+                <Camera className="w-4 h-4" />
+                Trocar Logo
+              </button>
+              <button
+                onClick={handleRemoveLogo}
+                className="px-4 py-2.5 rounded-lg text-xs font-medium bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors flex items-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Remover
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="flex flex-col items-center gap-4 py-10 cursor-pointer rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-secondary/30 transition-all"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center">
+              <Upload className="w-7 h-7 text-muted-foreground" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-semibold text-foreground mb-1">Clique para enviar a logo</p>
+              <p className="text-xs text-muted-foreground">PNG, JPG ou WEBP \u2022 M\u00e1ximo 1.5MB</p>
+            </div>
+            {isUploading && (
+              <div className="flex items-center gap-2 text-xs text-primary">
+                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                Enviando...
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Preview nos PDFs */}
+      <div className="bg-secondary/50 rounded-lg p-4 border border-border">
+        <p className="text-xs font-medium text-foreground mb-2">Onde a logo aparece:</p>
+        <ul className="text-xs text-muted-foreground space-y-1.5">
+          <li className="flex items-center gap-2">\u2022 Cabe\u00e7alho do PDF de Or\u00e7amento</li>
+          <li className="flex items-center gap-2">\u2022 Cabe\u00e7alho do Termo de Garantia</li>
+          <li className="flex items-center gap-2">\u2022 Ao lado do nome da loja nos documentos</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+// ==================== WARRANTY TAB ====================
+const DEFAULT_WARRANTY_TEXT = `1. COBERTURA DA GARANTIA
+Esta garantia cobre defeitos de fabrica\u00e7\u00e3o e mau funcionamento de componentes internos do aparelho, incluindo:\n- Placa-m\u00e3e e processador\n- Tela (defeitos de pixels, touch fantasma)\n- Bateria (capacidade abaixo de 80% no per\u00edodo)\n- Bot\u00f5es f\u00edsicos e sensores\n- Alto-falantes e microfone\n- Conector de carga\n- C\u00e2meras (foco, estabiliza\u00e7\u00e3o)\n\n2. EXCLUS\u00d5ES DA GARANTIA\nA garantia N\u00c3O cobre:\n- Danos f\u00edsicos (quedas, impactos, press\u00e3o)\n- Danos por l\u00edquidos ou umidade\n- Mau uso ou negligencia\n- Modifica\u00e7\u00f5es n\u00e3o autorizadas (jailbreak, desbloqueio)\n- Desgaste natural (riscos cosm\u00e9ticos)\n- Acess\u00f3rios (capas, pel\u00edculas, carregadores)\n- Problemas de software (apps, atualiza\u00e7\u00f5es)\n\n3. CONDI\u00c7\u00d5ES\n- O aparelho deve ser apresentado nas mesmas condi\u00e7\u00f5es da compra\n- A garantia \u00e9 intransfer\u00edvel\n- O prazo para an\u00e1lise t\u00e9cnica \u00e9 de at\u00e9 30 dias \u00fateis\n- A loja reserva o direito de reparar, substituir ou reembolsar`;
+
+function WarrantyTab() {
+  const config = useConfig();
+  const [localText, setLocalText] = useState(config.warrantyText || DEFAULT_WARRANTY_TEXT);
+  const [localDays, setLocalDays] = useState(config.warrantyDays || 90);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  const handleSave = useCallback(() => {
+    config.setWarrantyText(localText);
+    config.setWarrantyDays(localDays);
+    setHasChanges(false);
+    toast.success("Configura\u00e7\u00f5es de garantia salvas!");
+  }, [config, localText, localDays]);
+
+  const handleReset = useCallback(() => {
+    setLocalText(DEFAULT_WARRANTY_TEXT);
+    setLocalDays(90);
+    setHasChanges(true);
+    toast.info("Texto restaurado para o padr\u00e3o. Clique em Salvar para confirmar.");
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      {/* Instru\u00e7\u00f5es */}
+      <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4">
+        <div className="flex items-start gap-3">
+          <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-100 mb-1">Termo de Garantia</p>
+            <p className="text-xs text-emerald-700 dark:text-emerald-300">
+              Configure o texto que aparece no PDF do Termo de Garantia. 
+              Voc\u00ea pode personalizar as coberturas, exclus\u00f5es e condi\u00e7\u00f5es de acordo com a pol\u00edtica da sua loja.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Dias de Garantia */}
+      <div className="bg-card rounded-xl border border-border p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <ShieldCheck className="w-4 h-4 text-primary" />
+          <label className="text-sm font-semibold text-foreground">Prazo de Garantia (dias)</label>
+        </div>
+        <p className="text-[10px] text-muted-foreground mb-3">
+          N\u00famero de dias de garantia padr\u00e3o para os aparelhos vendidos. Este valor aparece no Termo de Garantia.
+        </p>
+        <div className="flex items-center gap-3">
+          {[30, 60, 90, 120, 180, 365].map((d) => (
+            <button
+              key={d}
+              onClick={() => { setLocalDays(d); setHasChanges(true); }}
+              className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                localDays === d
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "bg-secondary text-secondary-foreground hover:bg-accent"
+              }`}
+            >
+              {d} dias
+            </button>
+          ))}
+        </div>
+        <div className="mt-3">
+          <label className="text-[10px] text-muted-foreground mb-1 block">Ou digite um valor personalizado:</label>
+          <input
+            type="number"
+            min={1}
+            max={730}
+            value={localDays}
+            onChange={(e) => { setLocalDays(parseInt(e.target.value) || 90); setHasChanges(true); }}
+            className="w-32 px-3 py-2 rounded-lg border border-input bg-background text-sm font-mono"
+          />
+        </div>
+      </div>
+
+      {/* Texto da Garantia */}
+      <div className="bg-card rounded-xl border border-border p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-4 h-4 text-primary" />
+            <label className="text-sm font-semibold text-foreground">Texto do Termo de Garantia</label>
+          </div>
+          <button
+            onClick={handleReset}
+            className="px-2.5 py-1.5 rounded-lg text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors flex items-center gap-1"
+          >
+            <RotateCcw className="w-3 h-3" />
+            Restaurar padr\u00e3o
+          </button>
+        </div>
+        <p className="text-[10px] text-muted-foreground mb-3">
+          Personalize o texto que aparece no corpo do Termo de Garantia. Inclua coberturas, exclus\u00f5es e condi\u00e7\u00f5es.
+        </p>
+        <textarea
+          value={localText}
+          onChange={(e) => { setLocalText(e.target.value); setHasChanges(true); }}
+          rows={16}
+          className="w-full px-3 py-3 rounded-lg border border-input bg-background text-sm resize-y font-mono leading-relaxed"
+          placeholder="Digite o texto do termo de garantia..."
+        />
+      </div>
+
+      {/* Bot\u00e3o Salvar */}
+      {hasChanges && (
+        <div className="sticky bottom-4 flex justify-end">
+          <button
+            onClick={handleSave}
+            className="px-6 py-3 rounded-xl text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-lg flex items-center gap-2"
+          >
+            <Save className="w-4 h-4" />
+            Salvar Configura\u00e7\u00f5es de Garantia
+          </button>
+        </div>
+      )}
+
+      {/* Preview */}
+      <div className="bg-secondary/50 rounded-lg p-4 border border-border">
+        <p className="text-xs font-medium text-foreground mb-3">Pr\u00e9-visualiza\u00e7\u00e3o do Termo:</p>
+        <div className="bg-white dark:bg-gray-900 rounded-lg p-5 border border-border text-xs space-y-2 whitespace-pre-wrap leading-relaxed">
+          <div className="text-center border-b border-border pb-3 mb-3">
+            <p className="text-sm font-bold text-foreground">{config.storeName || "Quotify"}</p>
+            <p className="text-[10px] text-muted-foreground mt-1">TERMO DE GARANTIA</p>
+          </div>
+          <p className="text-muted-foreground"><strong>Produto:</strong> iPhone 16 Pro Max 256GB</p>
+          <p className="text-muted-foreground"><strong>Validade:</strong> {localDays} dias a partir da compra</p>
+          <div className="border-t border-border pt-3 mt-3 text-muted-foreground">
+            {localText || "(Nenhum texto configurado)"}
           </div>
         </div>
       </div>
