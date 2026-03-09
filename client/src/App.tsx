@@ -7,6 +7,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { ConfigProvider } from "./contexts/ConfigContext";
 import Landing from "./pages/Landing";
 import Home from "./pages/Home";
+import DashboardHome from "./pages/Dashboard";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
 import Help from "./pages/Help";
@@ -17,6 +18,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Landing} />
       <Route path="/boas-vindas" component={Welcome} />
+      <Route path="/home" component={DashboardHome} />
       <Route path="/dashboard" component={Home} />
       <Route path="/configuracoes" component={Settings} />
       <Route path="/admin" component={Admin} />
